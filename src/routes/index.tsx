@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { List, Map as MapIcon } from "lucide-react";
+const ResultsMap = lazy(() => import("@/components/ResultsMap"));
 import {
   ArrowRight,
   CalendarCheck,
@@ -103,6 +105,17 @@ function Index() {
   const [sortKey, setSortKey] = useState<SortKey>("best");
   const [social, setSocial] = useState<Social>({ counts: {}, friends: {} });
   const [mine, setMine] = useState<Set<string>>(new Set());
+  const [mobileView, setMobileView] = useState<"list" | "map">("list");
+  const [split, setSplit] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const visible = results ? sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8) : [];
+  const selectFromMap = (id: string | null) => {
+    setSelectedId(id);
+    if (id && window.matchMedia("(min-width: 1024px)").matches) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById(`card-${id}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+    }
+  };
 
   useEffect(() => {
     try {
@@ -307,7 +320,7 @@ function Index() {
 
       {/* Results */}
       {results && !loading && (
-        <section className="relative z-10 mx-auto max-w-3xl px-6 pb-24">
+        <section className={cn("relative z-10 mx-auto px-6 pb-24", split ? "max-w-3xl lg:max-w-7xl" : "max-w-3xl")}>
           <div className="mb-3 flex items-baseline justify-between gap-4">
             <h2 className="font-display text-lg font-semibold">Sort by</h2>
             <span className="shrink-0 font-mono text-xs text-muted-foreground">
@@ -325,12 +338,43 @@ function Index() {
             {sortKey === "friends" && !user && <Link to="/auth" className="px-2 py-1 text-xs text-social-ink">Sign in to see friends</Link>}
           </div>
 
-          <div className="space-y-4">
-            {sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8).map((r, i) => (
-              <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
-                going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
-                isMine={mine.has(r.activity.id)} signedIn={!!user} onGoing={() => toggleGoing(r.activity.id, r.activity.title)} />
-            ))}
+          <div className="mb-4 flex items-center gap-2">
+            <div role="tablist" aria-label="Results view" className="inline-flex rounded-full border border-border bg-card p-1 lg:hidden">
+              {(["list", "map"] as const).map((v) => (
+                <button key={v} role="tab" aria-selected={mobileView === v} onClick={() => setMobileView(v)}
+                  className={cn("inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-xs font-semibold transition-colors", mobileView === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+                  {v === "list" ? <List className="size-3.5" /> : <MapIcon className="size-3.5" />} {v === "list" ? "List" : "Map"}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setSplit((s) => !s)} aria-pressed={split}
+              className={cn("hidden items-center gap-1 rounded-full border px-3.5 py-1 text-xs font-semibold transition-colors lg:inline-flex", split ? "border-accent-ink bg-accent text-accent-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+              <MapIcon className="size-3.5" /> {split ? "Hide map" : "Show map"}
+            </button>
+            <span className="text-xs text-muted-foreground">Distance shown as travel time, not miles</span>
+          </div>
+
+          <div className={cn(split && "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6")}>
+            <div className={cn("space-y-4", mobileView === "map" && "hidden lg:block", !split && "")}>
+              {visible.map((r, i) => (
+                <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
+                  going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
+                  isMine={mine.has(r.activity.id)} signedIn={!!user} onGoing={() => toggleGoing(r.activity.id, r.activity.title)}
+                  selected={selectedId === r.activity.id} onSelect={() => setSelectedId(r.activity.id)}
+                  outside={!!profile?.max_travel_min && (r.journey?.totalMin ?? 0) > profile.max_travel_min} />
+              ))}
+            </div>
+            <div className={cn(mobileView === "list" && "hidden", split ? "lg:block" : "lg:hidden")}>
+              <div className="h-[70vh] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
+                <ClientOnly fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>
+                  <Suspense fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>
+                    <ResultsMap results={visible} nowMin={nowMin ?? 0} origin={DEMO_LOCATION}
+                      maxTravelMin={profile?.max_travel_min ?? null} hasTimetable={!!tt && !ignoreTt}
+                      selectedId={selectedId} onSelect={selectFromMap} />
+                  </Suspense>
+                </ClientOnly>
+              </div>
+            </div>
           </div>
         </section>
       )}
