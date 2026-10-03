@@ -14,13 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          activity_id: string
+          activity_title: string | null
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          activity_title?: string | null
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          activity_title?: string | null
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee: string
+          created_at: string
+          id: string
+          requester: string
+          status: string
+        }
+        Insert: {
+          addressee: string
+          created_at?: string
+          id?: string
+          requester: string
+          status?: string
+        }
+        Update: {
+          addressee?: string
+          created_at?: string
+          id?: string
+          requester?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          fav_categories: string[]
+          handle: string | null
+          home_town: string
+          id: string
+          max_budget: number | null
+          max_travel_min: number | null
+          timetable_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          fav_categories?: string[]
+          handle?: string | null
+          home_town?: string
+          id: string
+          max_budget?: number | null
+          max_travel_min?: number | null
+          timetable_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          fav_categories?: string[]
+          handle?: string | null
+          home_town?: string
+          id?: string
+          max_budget?: number | null
+          max_travel_min?: number | null
+          timetable_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_friend_by_handle: { Args: { _handle: string }; Returns: string }
+      friends_going: {
+        Args: { _ids: string[] }
+        Returns: {
+          activity_id: string
+          names: string[]
+        }[]
+      }
+      going_counts: {
+        Args: { _ids: string[] }
+        Returns: {
+          activity_id: string
+          n: number
+        }[]
+      }
+      my_friends: {
+        Args: never
+        Returns: {
+          display_name: string
+          friend_id: string
+          friendship_id: string
+          handle: string
+          incoming: boolean
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
