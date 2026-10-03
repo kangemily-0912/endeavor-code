@@ -8,9 +8,9 @@ export type Journey = {
   leaveByMin: number; // must leave by (minutes after midnight, local)
   totalMin: number;
   legs: JourneyLeg[];
-  live?: boolean; // true when built from the live Ember API
-  pricePence?: number; // live fare, when known
-  seatsLeft?: number; // live seat availability, when known
+  live?: boolean | undefined; // true when built from the live Ember API
+  pricePence?: number | undefined; // live fare, when known
+  seatsLeft?: number | undefined; // live seat availability, when known
 };
 
 export type Activity = {
