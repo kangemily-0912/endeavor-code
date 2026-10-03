@@ -19,7 +19,7 @@ async function nominatim(q: string): Promise<GeoHit> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 4000);
   try {
-    const res = await fetch(url, { headers: { "User-Agent": "Wayfare hackathon demo (venue lookup)" }, signal: ctrl.signal });
+    const res = await fetch(url, { headers: { "User-Agent": "Event Spark hackathon demo (venue lookup)" }, signal: ctrl.signal });
     if (!res.ok) return null;
     const j = (await res.json()) as { lat: string; lon: string }[];
     return j[0] ? { lat: Number(j[0].lat), lng: Number(j[0].lon) } : null;

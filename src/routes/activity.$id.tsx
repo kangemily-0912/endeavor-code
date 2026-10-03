@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/activity/$id")({
   head: () => ({
     meta: [
-      { title: "Activity details — Wayfare" },
+      { title: "Activity details — Event Spark" },
       { name: "description", content: "Organiser, past events, who's going and similar activities near you." },
-      { property: "og:title", content: "Activity details — Wayfare" },
+      { property: "og:title", content: "Activity details — Event Spark" },
       { property: "og:description", content: "See the organiser, past events, who's going and similar activities." },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary" },

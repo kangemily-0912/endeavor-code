@@ -79,7 +79,7 @@ async function extract(
   todayIso: string,
 ): Promise<LiveEvent[]> {
   const res = await fetch(source.url, {
-    headers: { "User-Agent": "Mozilla/5.0 (Wayfare event aggregator)" },
+    headers: { "User-Agent": "Mozilla/5.0 (Event Spark event aggregator)" },
     signal: AbortSignal.timeout(12000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

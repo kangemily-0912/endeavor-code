@@ -29,6 +29,7 @@ import { useAuth, useProfile } from "@/hooks/use-auth";
 import { applyPreferences, sortResults, SORTS, type Social, type SortKey } from "@/lib/sorting";
 import { applyLikes, LIKE_REASONS, likeMatch, removeLike, saveLike, useLikes, type LikeReason } from "@/lib/likes";
 import { ExternalLink, Heart } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const TT_KEY = "wayfare.timetable";
 
@@ -52,13 +53,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Wayfare — Discover locally. Decide instantly. Get there easily." },
+      { title: "Event Spark — Discover locally. Decide instantly. Get there easily." },
       {
         name: "description",
         content:
-          "Tell Wayfare what you feel like doing. We find local activities you can actually reach in time — with live Ember journeys built in.",
+          "Tell Event Spark what you feel like doing. We find local activities you can actually reach in time — with live Ember journeys built in.",
       },
-      { property: "og:title", content: "Wayfare — Real-time local discovery & transport" },
+      { property: "og:title", content: "Event Spark — Real-time local discovery & transport" },
       {
         property: "og:description",
         content:
@@ -240,12 +241,9 @@ function Index() {
 
       {/* Header */}
       <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-            <MapPin className="size-5 text-primary-foreground" />
-          </div>
-          <span className="font-display text-xl font-bold tracking-tight">Wayfare</span>
-        </div>
+        <Link to="/" aria-label="Event Spark home" className="shrink-0">
+          <BrandLogo className="h-12 sm:h-14" />
+        </Link>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 font-mono text-xs text-muted-foreground">
             <span className="size-1.5 rounded-full bg-accent animate-pulse-dot" />
