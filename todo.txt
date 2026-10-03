@@ -1,0 +1,12 @@
+accounts:
+- can create an account
+- account profile
+- interests
+- recent events i have been to
+- events that are on my rota
+- make friends with other accounts (may be mroe complicated)
+
+can filter options within:
+- a given price range
+- a given distance range
+- a given date? sub-options of todya and tommorrow
