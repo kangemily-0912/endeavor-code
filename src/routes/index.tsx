@@ -227,7 +227,7 @@ function Index() {
             {DEMO_LOCATION} · {nowMin === null ? "…" : formatTime(nowMin)}
           </div>
           {user ? (
-            <Link to="/profile" className="rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold hover:text-accent">
+            <Link to="/profile" className="rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold hover:text-accent-ink">
               {profile?.display_name ?? "Profile"}
             </Link>
           ) : (
@@ -238,7 +238,7 @@ function Index() {
 
       {/* Hero / intent input */}
       <section className="relative z-10 mx-auto max-w-3xl px-6 pt-14 pb-10 text-center">
-        <p className="mb-4 font-mono text-xs tracking-[0.25em] text-accent uppercase">
+        <p className="mb-4 font-mono text-xs tracking-[0.25em] text-accent-ink uppercase">
           Intent → Discovery → Decision → Journey
         </p>
         <h1 className="text-balance font-display text-4xl font-bold tracking-tight sm:text-5xl">
@@ -257,8 +257,8 @@ function Index() {
             runSearch(query);
           }}
         >
-          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-2xl shadow-black/40 focus-within:border-ring">
-            <Sparkles className="ml-3 size-5 shrink-0 text-primary" />
+          <div className="flex items-center gap-2 rounded-full border border-border bg-card p-2 pl-3 shadow-lift focus-within:border-ring">
+            <Sparkles className="ml-3 size-5 shrink-0 text-primary-ink" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -268,7 +268,7 @@ function Index() {
             <button
               type="submit"
               disabled={loading || nowMin === null}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:opacity-60"
+              className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground shadow-soft transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:opacity-60"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : "Go"}
               {!loading && <ArrowRight className="size-4" />}
@@ -281,7 +281,7 @@ function Index() {
             <button
               key={intent}
               onClick={() => runSearch(intent)}
-              className="rounded-full border border-border bg-secondary px-3.5 py-1.5 text-xs text-secondary-foreground transition-colors hover:border-accent hover:text-accent"
+              className="rounded-full border border-border bg-secondary px-3.5 py-1.5 text-xs text-secondary-foreground transition-colors hover:border-accent-ink hover:text-accent-ink"
             >
               {intent}
             </button>
@@ -298,7 +298,7 @@ function Index() {
       {/* Loading */}
       {loading && (
         <section className="relative z-10 mx-auto max-w-3xl px-6 pb-24 text-center">
-          <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <Loader2 className="mx-auto size-6 animate-spin text-primary-ink" />
           <p className="mt-3 font-mono text-xs text-muted-foreground">
             Checking live Ember departures from {DEMO_LOCATION}…
           </p>
@@ -322,12 +322,12 @@ function Index() {
                 {s.label}
               </button>
             ))}
-            {sortKey === "friends" && !user && <Link to="/auth" className="px-2 py-1 text-xs text-accent">Sign in to see friends</Link>}
+            {sortKey === "friends" && !user && <Link to="/auth" className="px-2 py-1 text-xs text-social-ink">Sign in to see friends</Link>}
           </div>
 
           <div className="space-y-4">
             {sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8).map((r, i) => (
-              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
+              <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
                 going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
                 isMine={mine.has(r.activity.id)} signedIn={!!user} onGoing={() => toggleGoing(r.activity.id, r.activity.title)} />
             ))}
@@ -354,7 +354,7 @@ function Index() {
                 <a key={s.url} href={s.url} target="_blank" rel="noreferrer"
                   className={cn("rounded-full border px-2.5 py-1 font-mono text-[10px]",
                     s.ok ? "border-border text-foreground hover:border-primary" : "border-border text-muted-foreground line-through opacity-60")}>
-                  {s.name} {s.ok && <span className="text-accent">· {s.count}</span>}
+                  {s.name} {s.ok && <span className="text-accent-ink">· {s.count}</span>}
                 </a>
               ))}
             </div>
@@ -383,7 +383,7 @@ function Index() {
             },
           ].map((s) => (
             <div key={s.step} className="rounded-2xl border border-border bg-card p-6">
-              <span className="font-mono text-xs text-primary">{s.step}</span>
+              <span className="font-mono text-xs text-primary-ink">{s.step}</span>
               <h3 className="mt-2 font-display font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
             </div>
@@ -459,15 +459,15 @@ function ResultCard({
   const goingRow = (
     <div className="flex flex-wrap items-center gap-3 border-t border-border px-5 py-2.5 text-xs">
       {signedIn ? (
-        <button onClick={onGoing} className={cn("rounded-full px-3 py-1 font-semibold", isMine ? "bg-accent text-accent-foreground" : "border border-border hover:border-accent")}>
+        <button onClick={onGoing} className={cn("rounded-full px-3 py-1 font-semibold", isMine ? "bg-social text-social-foreground" : "border border-border hover:border-social-ink")}>
           {isMine ? "✓ I'm going" : "I'm going"}
         </button>
       ) : (
-        <Link to="/auth" className="rounded-full border border-border px-3 py-1 hover:border-accent">Sign in to say you're going</Link>
+        <Link to="/auth" className="rounded-full border border-border px-3 py-1 hover:border-accent-ink">Sign in to say you're going</Link>
       )}
       <span className="inline-flex items-center gap-1 text-muted-foreground"><Users className="size-3.5" /> {going} going</span>
-      {friends.length > 0 && <span className="text-accent">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
-      <Link to="/activity/$id" params={{ id: a.id }} className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+      {friends.length > 0 && <span className="text-social-ink">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
+      <Link to="/activity/$id" params={{ id: a.id }} className="ml-auto inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">
         Details <ArrowRight className="size-3.5" />
       </Link>
     </div>
@@ -476,8 +476,8 @@ function ResultCard({
   return (
     <article
       className={cn(
-        "animate-rise-in overflow-hidden rounded-2xl border bg-card",
-        isTop ? "border-primary/60 shadow-[0_0_40px_-12px] shadow-primary/30" : "border-border",
+        "animate-rise-in overflow-hidden rounded-3xl border bg-card shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift",
+        isTop ? "border-primary-ink/40 shadow-lift ring-4 ring-primary/40" : "border-border",
         !result.reachable && "opacity-60",
       )}
       style={{ animationDelay: `${index * 70}ms` }}
@@ -505,27 +505,27 @@ function ResultCard({
               </span>
             )}
             {!result.reachable && (
-              <span className="rounded-full bg-destructive/20 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-destructive uppercase">
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-destructive uppercase">
                 Not reachable in time
               </span>
             )}
             {journey?.live && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-accent uppercase">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/40 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-accent-ink uppercase">
                 <Zap className="size-3" /> {journey.realtime ? "Live tracking" : "Live Ember"}
               </span>
             )}
             {result.reachable && journey?.departMin != null && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
+              <span className="inline-flex items-center gap-1 rounded-full bg-reach px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-reach-foreground uppercase">
                 <Bus className="size-3" /> {journey.operator} {dueLabel(journey.departMin, nowMin)}
               </span>
             )}
             {result.clash && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/20 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-destructive uppercase">
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-destructive uppercase">
                 <CalendarX className="size-3" /> Clashes with {result.clash}
               </span>
             )}
             {a.live && (
-              <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
+              <span className="rounded-full bg-primary/40 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary-ink uppercase">
                 Live listing
               </span>
             )}
@@ -556,7 +556,7 @@ function ResultCard({
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                className="inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline"
               >
                 Sign up <ArrowRight className="size-3.5" />
               </a>
@@ -577,21 +577,21 @@ function ResultCard({
         <div className="grid gap-5 border-t border-border p-5 sm:grid-cols-2">
           {/* Journey */}
           <div>
-            <h4 className="mb-3 font-mono text-[10px] font-bold tracking-widest text-accent uppercase">
+            <h4 className="mb-3 font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase">
               Getting there
             </h4>
             {result.reachable && journey ? (
               <>
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs">
                   <span className="text-muted-foreground">Leave by</span>
-                  <span className="font-mono font-bold text-primary">
+                  <span className="font-mono font-bold text-primary-ink">
                     {formatTime(journey.leaveByMin)}
                   </span>
                   <span className="text-muted-foreground">
                     · arrive {formatTime(result.arriveByMin)}
                   </span>
                   {journey.live && journey.pricePence != null && (
-                    <span className="ml-auto font-mono text-accent">
+                    <span className="ml-auto font-mono text-accent-ink">
                       £{(journey.pricePence / 100).toFixed(2)} · {journey.seatsLeft ?? "–"} seats
                     </span>
                   )}
@@ -599,7 +599,7 @@ function ResultCard({
                 <ol className="relative space-y-3 border-l border-border pl-5">
                   {journey.legs.map((leg, i) => (
                     <li key={i} className="relative text-xs">
-                      <span className="absolute -left-[26px] flex size-4 items-center justify-center rounded-full bg-muted text-accent">
+                      <span className="absolute -left-[26px] flex size-4 items-center justify-center rounded-full bg-muted text-accent-ink">
                         <LegIcon mode={leg.mode} />
                       </span>
                       <span className="text-foreground">{leg.label}</span>
@@ -625,7 +625,7 @@ function ResultCard({
                       {journey.alternatives.map((alt, i) => (
                         <li key={i} className="flex flex-wrap items-center gap-x-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs">
                           <span className="font-semibold text-foreground">{alt.operator}</span>
-                          <span className="font-mono text-primary">{dueLabel(alt.departMin ?? alt.leaveByMin, nowMin)}</span>
+                          <span className="font-mono text-primary-ink">{dueLabel(alt.departMin ?? alt.leaveByMin, nowMin)}</span>
                           <span className="font-mono text-muted-foreground">
                             dep {formatTime(alt.departMin ?? alt.leaveByMin)} → arr {formatTime(alt.arriveMin ?? alt.leaveByMin + alt.totalMin)}
                           </span>
@@ -648,7 +648,7 @@ function ResultCard({
 
           {/* Score breakdown */}
           <div>
-            <h4 className="mb-3 font-mono text-[10px] font-bold tracking-widest text-accent uppercase">
+            <h4 className="mb-3 font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase">
               Why this rank
             </h4>
             <div className="space-y-2.5">
@@ -663,7 +663,7 @@ function ResultCard({
                 {result.matchedTags.map((t) => (
                   <span
                     key={t}
-                    className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] text-accent"
+                    className="rounded-full bg-accent/40 px-2 py-0.5 font-mono text-[10px] text-accent-ink"
                   >
                     {t}
                   </span>
@@ -710,7 +710,7 @@ function TimetablePanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
-            <CalendarCheck className="size-4 text-accent" />
+            <CalendarCheck className="size-4 text-accent-ink" />
           </div>
           <div>
             <p className="font-display text-sm font-semibold">

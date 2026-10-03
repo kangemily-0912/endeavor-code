@@ -77,11 +77,11 @@ function DetailPage() {
     loadSocial();
   };
 
-  if (!pool) return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="size-6 animate-spin text-primary" /></div>;
+  if (!pool) return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="size-6 animate-spin text-primary-ink" /></div>;
   if (!a) return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
       <p className="text-muted-foreground">This activity has finished or is no longer listed.</p>
-      <Link to="/" className="text-primary hover:underline">Back to search</Link>
+      <Link to="/" className="text-primary-ink hover:underline">Back to search</Link>
     </div>
   );
 
@@ -99,8 +99,8 @@ function DetailPage() {
         <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to results</Link>
 
         <div className="mt-8 flex flex-wrap gap-1.5">
-          {a.tags.map((t) => <span key={t} className="rounded-full bg-accent/15 px-2.5 py-0.5 font-mono text-[10px] text-accent capitalize">{t}</span>)}
-          {a.live && <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-primary uppercase">Live listing</span>}
+          {a.tags.map((t) => <span key={t} className="rounded-full bg-accent/40 px-2.5 py-0.5 font-mono text-[10px] text-accent-ink capitalize">{t}</span>)}
+          {a.live && <span className="rounded-full bg-primary/40 px-2.5 py-0.5 font-mono text-[10px] font-bold text-primary-ink uppercase">Live listing</span>}
         </div>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance">{a.title}</h1>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
@@ -112,15 +112,15 @@ function DetailPage() {
 
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4">
           {user ? (
-            <button onClick={toggle} className={cn("rounded-full px-4 py-2 text-sm font-semibold", mine ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground")}>{mine ? "✓ I'm going" : "I'm going"}</button>
+            <button onClick={toggle} className={cn("rounded-full px-4 py-2 text-sm font-semibold", mine ? "bg-social text-social-foreground" : "bg-primary text-primary-foreground")}>{mine ? "✓ I'm going" : "I'm going"}</button>
           ) : <Link to="/auth" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Sign in to say you're going</Link>}
           <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Users className="size-4" />{going} going</span>
-          {friends.length > 0 && <span className="text-sm text-accent">Friends: {friends.join(", ")}</span>}
-          {a.url && <a href={a.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">Sign up <ArrowRight className="size-4" /></a>}
+          {friends.length > 0 && <span className="text-sm text-social-ink">Friends: {friends.join(", ")}</span>}
+          {a.url && <a href={a.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-ink hover:underline">Sign up <ArrowRight className="size-4" /></a>}
         </div>
 
         <section className="mt-8 rounded-2xl border border-border bg-card p-5">
-          <h2 className="font-mono text-[10px] font-bold tracking-widest text-accent uppercase">Organiser</h2>
+          <h2 className="font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase">Organiser</h2>
           <p className="mt-2 font-display text-lg font-semibold">{a.source}</p>
           {fromOrganiser.length > 0 ? (
             <>
@@ -140,7 +140,7 @@ function DetailPage() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-border bg-card p-5">
-          <h2 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest text-accent uppercase"><Sparkles className="size-3.5" /> Similar activities</h2>
+          <h2 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase"><Sparkles className="size-3.5" /> Similar activities</h2>
           {similar.length ? <ul className="mt-3 space-y-1.5">{similar.map((x) => <MiniRow key={x.id} a={x} />)}</ul>
             : <p className="mt-2 text-xs text-muted-foreground">Nothing similar listed right now.</p>}
         </section>
@@ -152,7 +152,7 @@ function DetailPage() {
 function MiniRow({ a }: { a: Activity }) {
   return (
     <li>
-      <Link to="/activity/$id" params={{ id: a.id }} className="flex items-center gap-3 rounded-lg bg-secondary px-3 py-2 text-sm hover:text-accent">
+      <Link to="/activity/$id" params={{ id: a.id }} className="flex items-center gap-3 rounded-lg bg-secondary px-3 py-2 text-sm hover:text-accent-ink">
         <span className="font-semibold">{a.title}</span>
         <span className="truncate text-xs text-muted-foreground">{a.dateLabel ?? "Today"} · {a.town} · {a.priceGbp === 0 ? "Free" : `£${a.priceGbp}`}</span>
         <ArrowRight className="ml-auto size-3.5 shrink-0" />

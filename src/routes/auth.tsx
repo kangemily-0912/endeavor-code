@@ -57,7 +57,7 @@ function AuthPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
       <div className="route-grid pointer-events-none absolute inset-0" />
-      <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl shadow-black/40">
+      <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lift">
         <Link to="/" className="mb-6 flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
             <MapPin className="size-5 text-primary-foreground" />
@@ -83,7 +83,7 @@ function AuthPage() {
             {busy ? <Loader2 className="size-4 animate-spin" /> : mode === "in" ? "Sign in" : "Sign up"}
           </button>
         </form>
-        {msg && <p className="mt-3 text-xs text-accent">{msg}</p>}
+        {msg && <p className="mt-3 text-xs text-accent-ink">{msg}</p>}
         <button onClick={() => { setMode(mode === "in" ? "up" : "in"); setMsg(null); }} className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-foreground">
           {mode === "in" ? "No account? Sign up" : "Already have an account? Sign in"}
         </button>
