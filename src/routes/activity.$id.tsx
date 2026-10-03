@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, History, Loader2, MapPin, Sparkles, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, ExternalLink, History, Loader2, MapPin, Sparkles, Users, Wallet } from "lucide-react";
 import { ACTIVITIES, type Activity } from "@/lib/activities";
 import { getLiveEvents } from "@/lib/live-events.functions";
 import { toActivity } from "@/lib/live-activity";
