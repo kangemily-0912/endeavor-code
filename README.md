@@ -2,7 +2,7 @@
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://endeavor-code.lovable.app
+**Live app**: https://events-park.lovable.app
 
 ## Build with Lovable
 
