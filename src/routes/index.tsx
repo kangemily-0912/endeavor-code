@@ -20,6 +20,10 @@ import { getEmberJourneys } from "@/lib/ember.functions";
 import { getLiveEvents, type LiveEvent, type SourceStatus } from "@/lib/live-events.functions";
 import type { Activity } from "@/lib/activities";
 import { getTimetable, type BusyBlock } from "@/lib/timetable.functions";
+import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth, useProfile } from "@/hooks/use-auth";
+import { applyPreferences, sortResults, SORTS, type Social, type SortKey } from "@/lib/sorting";
 
 const TT_KEY = "wayfare.timetable";
 
@@ -129,6 +133,11 @@ function Index() {
   const [syncing, setSyncing] = useState(true);
   const [tt, setTt] = useState<{ url: string; blocks: BusyBlock[] } | null>(null);
   const [ignoreTt, setIgnoreTt] = useState(false);
+  const { user } = useAuth();
+  const { profile, save: saveProfile } = useProfile(user?.id);
+  const [sortKey, setSortKey] = useState<SortKey>("best");
+  const [social, setSocial] = useState<Social>({ counts: {}, friends: {} });
+  const [mine, setMine] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -140,6 +149,40 @@ function Index() {
     setTt(v);
     if (v) localStorage.setItem(TT_KEY, JSON.stringify(v));
     else localStorage.removeItem(TT_KEY);
+    if (user && (v === null || v.url !== "demo")) saveProfile({ timetable_url: v?.url ?? null });
+  };
+
+  // Signed-in users get their saved timetable on any device.
+  useEffect(() => {
+    const url = profile?.timetable_url;
+    if (!url || (tt && tt.url === url)) return;
+    getTimetable({ data: { url } }).then((r) => {
+      setTt({ url, blocks: r.blocks });
+      localStorage.setItem(TT_KEY, JSON.stringify({ url, blocks: r.blocks }));
+    }).catch(() => {});
+  }, [profile?.timetable_url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Who's going: public counts + friends (signed in).
+  const loadSocial = async (ids: string[]) => {
+    if (!ids.length) return;
+    const [c, f, m] = await Promise.all([
+      supabase.rpc("going_counts", { _ids: ids }),
+      user ? supabase.rpc("friends_going", { _ids: ids }) : Promise.resolve({ data: [] }),
+      user ? supabase.from("attendance").select("activity_id").eq("user_id", user.id) : Promise.resolve({ data: [] }),
+    ]);
+    setSocial({
+      counts: Object.fromEntries((c.data ?? []).map((r: { activity_id: string; n: number }) => [r.activity_id, Number(r.n)])),
+      friends: Object.fromEntries((f.data ?? []).map((r: { activity_id: string; names: string[] }) => [r.activity_id, r.names])),
+    });
+    setMine(new Set((m.data ?? []).map((r: { activity_id: string }) => r.activity_id)));
+  };
+  useEffect(() => { if (results) loadSocial(results.map((r) => r.activity.id)); }, [results, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleGoing = async (id: string, title: string) => {
+    if (!user) return;
+    if (mine.has(id)) await supabase.from("attendance").delete().eq("user_id", user.id).eq("activity_id", id);
+    else await supabase.from("attendance").insert({ user_id: user.id, activity_id: id, activity_title: title });
+    if (results) loadSocial(results.map((r) => r.activity.id));
   };
 
   // Pull aggregated events from the watched pages (server refreshes hourly).
@@ -213,9 +256,18 @@ function Index() {
           </div>
           <span className="font-display text-xl font-bold tracking-tight">Wayfare</span>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 font-mono text-xs text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-accent animate-pulse-dot" />
-          {DEMO_LOCATION} · {nowMin === null ? "…" : formatTime(nowMin)}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 font-mono text-xs text-muted-foreground">
+            <span className="size-1.5 rounded-full bg-accent animate-pulse-dot" />
+            {DEMO_LOCATION} · {nowMin === null ? "…" : formatTime(nowMin)}
+          </div>
+          {user ? (
+            <Link to="/profile" className="rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold hover:text-accent">
+              {profile?.display_name ?? "Profile"}
+            </Link>
+          ) : (
+            <Link to="/auth" className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground">Sign in</Link>
+          )}
         </div>
       </header>
 
@@ -291,22 +343,28 @@ function Index() {
       {/* Results */}
       {results && !loading && (
         <section className="relative z-10 mx-auto max-w-3xl px-6 pb-24">
-          <div className="mb-6 flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-lg font-semibold">
-              Ranked by{" "}
-              <span className="font-mono text-sm text-accent">
-                interest × time × reachability × availability
-              </span>
-            </h2>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <h2 className="font-display text-lg font-semibold">Sort by</h2>
             <span className="shrink-0 font-mono text-xs text-muted-foreground">
               {results.filter((r) => r.reachable).length} reachable · {liveCount} live Ember
               journeys
             </span>
           </div>
+          <div className="mb-6 flex flex-wrap gap-1.5">
+            {SORTS.map((s) => (
+              <button key={s.key} onClick={() => setSortKey(s.key)}
+                className={cn("rounded-full border px-3 py-1 text-xs", sortKey === s.key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                {s.label}
+              </button>
+            ))}
+            {sortKey === "friends" && !user && <Link to="/auth" className="px-2 py-1 text-xs text-accent">Sign in to see friends</Link>}
+          </div>
 
           <div className="space-y-4">
-            {results.slice(0, 6).map((r, i) => (
-              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0} />
+            {sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8).map((r, i) => (
+              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
+                going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
+                isMine={mine.has(r.activity.id)} signedIn={!!user} onGoing={() => toggleGoing(r.activity.id, r.activity.title)} />
             ))}
           </div>
         </section>
@@ -414,15 +472,38 @@ function ResultCard({
   rank,
   index,
   nowMin,
+  going,
+  friends,
+  isMine,
+  signedIn,
+  onGoing,
 }: {
   result: ScoredActivity;
   rank: number;
   index: number;
   nowMin: number;
+  going: number;
+  friends: string[];
+  isMine: boolean;
+  signedIn: boolean;
+  onGoing: () => void;
 }) {
   const [open, setOpen] = useState(rank === 1);
   const { activity: a, journey } = result;
   const isTop = rank === 1 && result.reachable;
+  const goingRow = (
+    <div className="flex flex-wrap items-center gap-3 border-t border-border px-5 py-2.5 text-xs">
+      {signedIn ? (
+        <button onClick={onGoing} className={cn("rounded-full px-3 py-1 font-semibold", isMine ? "bg-accent text-accent-foreground" : "border border-border hover:border-accent")}>
+          {isMine ? "✓ I'm going" : "I'm going"}
+        </button>
+      ) : (
+        <Link to="/auth" className="rounded-full border border-border px-3 py-1 hover:border-accent">Sign in to say you're going</Link>
+      )}
+      <span className="inline-flex items-center gap-1 text-muted-foreground"><Users className="size-3.5" /> {going} going</span>
+      {friends.length > 0 && <span className="text-accent">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
+    </div>
+  );
 
   return (
     <article
@@ -522,6 +603,7 @@ function ResultCard({
           )}
         />
       </button>
+      {goingRow}
 
       {open && (
         <div className="grid gap-5 border-t border-border p-5 sm:grid-cols-2">
