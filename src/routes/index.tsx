@@ -355,7 +355,7 @@ function Index() {
           </div>
 
           <div className={cn(split && "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6")}>
-            <div className={cn("space-y-4", mobileView === "map" && "hidden lg:block", !split && "")}>
+            <div key={`l-${mobileView}-${split}`} className={cn("wf-fade-in space-y-4", mobileView === "map" && "hidden lg:block", !split && "")}>
               {visible.map((r, i) => (
                 <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
                   going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
@@ -364,7 +364,7 @@ function Index() {
                   outside={!!profile?.max_travel_min && (r.journey?.totalMin ?? 0) > profile.max_travel_min} />
               ))}
             </div>
-            <div className={cn(mobileView === "list" && "hidden", split ? "lg:block" : "lg:hidden")}>
+            <div key={`m-${mobileView}`} className={cn("wf-fade-in", mobileView === "list" && "hidden", split ? "lg:block" : "lg:hidden")}>
               <div className="h-[70vh] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
                 <ClientOnly fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>
                   <Suspense fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>
