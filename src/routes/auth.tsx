@@ -83,7 +83,7 @@ function AuthPage() {
             {busy ? <Loader2 className="size-4 animate-spin" /> : mode === "in" ? "Sign in" : "Sign up"}
           </button>
         </form>
-        {msg && <p className="mt-3 text-xs text-accent">{msg}</p>}
+        {msg && <p className="mt-3 text-xs text-accent-ink">{msg}</p>}
         <button onClick={() => { setMode(mode === "in" ? "up" : "in"); setMsg(null); }} className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-foreground">
           {mode === "in" ? "No account? Sign up" : "Already have an account? Sign in"}
         </button>

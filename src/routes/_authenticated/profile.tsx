@@ -85,7 +85,7 @@ function ProfilePage() {
             <div className="flex flex-wrap gap-1.5">{CATEGORIES.map((c) => {
               const on = form.fav.includes(c);
               return <button key={c} onClick={() => setForm({ ...form, fav: on ? form.fav.filter((x) => x !== c) : [...form.fav, c] })}
-                className={cn("rounded-full border px-3 py-1 text-xs capitalize", on ? "border-accent bg-accent/15 text-accent" : "border-border text-muted-foreground")}>{c}</button>;
+                className={cn("rounded-full border px-3 py-1 text-xs capitalize", on ? "border-accent bg-accent/40 text-accent-ink" : "border-border text-muted-foreground")}>{c}</button>;
             })}</div></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5"><span className="text-xs text-muted-foreground">Max budget (£)</span>
@@ -103,13 +103,13 @@ function ProfilePage() {
         <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display font-semibold">Friends</h2>
-            <span className="font-mono text-xs text-muted-foreground">Your code: <span className="text-accent font-bold">{profile?.handle ?? "…"}</span></span>
+            <span className="font-mono text-xs text-muted-foreground">Your code: <span className="text-social-ink font-bold">{profile?.handle ?? "…"}</span></span>
           </div>
           <div className="flex gap-2">
             <input className={input} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Friend's code" />
             <button onClick={addFriend} disabled={!handle} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><UserPlus className="size-4" /> Add</button>
           </div>
-          {fmsg && <p className="text-xs text-accent">{fmsg}</p>}
+          {fmsg && <p className="text-xs text-social-ink">{fmsg}</p>}
           {friends.length === 0 ? <p className="text-xs text-muted-foreground">Share your code with friends so you can see what they're going to.</p> : (
             <ul className="space-y-2">{friends.map((f) => (
               <li key={f.friendship_id} className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm">
