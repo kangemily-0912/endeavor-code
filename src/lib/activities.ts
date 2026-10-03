@@ -26,7 +26,7 @@ export type Activity = {
   spacesLeft: number;
   description: string;
   url?: string; // registration / event link (live sources)
-  dateLabel?: string; // e.g. "Tue 6 Oct" when not today
+  dateLabel?: string | undefined; // e.g. "Tue 6 Oct" when not today
   live?: boolean; // aggregated from a watched page
   // Local activities: simple walk. Remote: resolved live via the Ember API.
   walkMin?: number;

@@ -34,8 +34,9 @@ export type LiveEvent = {
 export type SourceStatus = { name: string; url: string; ok: boolean; count: number };
 
 const TTL_MS = 60 * 60 * 1000; // refresh hourly
-let cache: { at: number; events: LiveEvent[]; sources: SourceStatus[] } | null = null;
-let inflight: Promise<NonNullable<typeof cache>> | null = null;
+type Snapshot = { at: number; events: LiveEvent[]; sources: SourceStatus[] };
+let cache: Snapshot | null = null;
+let inflight: Promise<Snapshot> | null = null;
 
 function htmlToText(html: string, base: string): string {
   // Linktree ships its links as JSON — keep that, it's the richest bit.
@@ -152,7 +153,7 @@ async function extract(
     }));
 }
 
-async function refresh() {
+async function refresh(): Promise<Snapshot> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI key missing");
   const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
@@ -181,7 +182,10 @@ export const getLiveEvents = createServerFn({ method: "GET" }).handler(async () 
   if (cache && Date.now() - cache.at < TTL_MS) return cache;
   if (!inflight) {
     inflight = refresh()
-      .then((c) => (cache = c))
+      .then((c) => {
+        cache = c;
+        return c;
+      })
       .finally(() => (inflight = null));
   }
   try {
