@@ -20,6 +20,10 @@ import { getEmberJourneys } from "@/lib/ember.functions";
 import { getLiveEvents, type LiveEvent, type SourceStatus } from "@/lib/live-events.functions";
 import type { Activity } from "@/lib/activities";
 import { getTimetable, type BusyBlock } from "@/lib/timetable.functions";
+import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth, useProfile } from "@/hooks/use-auth";
+import { applyPreferences, sortResults, SORTS, type Social, type SortKey } from "@/lib/sorting";
 
 const TT_KEY = "wayfare.timetable";
 
@@ -129,6 +133,11 @@ function Index() {
   const [syncing, setSyncing] = useState(true);
   const [tt, setTt] = useState<{ url: string; blocks: BusyBlock[] } | null>(null);
   const [ignoreTt, setIgnoreTt] = useState(false);
+  const { user } = useAuth();
+  const { profile, save: saveProfile } = useProfile(user?.id);
+  const [sortKey, setSortKey] = useState<SortKey>("best");
+  const [social, setSocial] = useState<Social>({ counts: {}, friends: {} });
+  const [mine, setMine] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -140,6 +149,40 @@ function Index() {
     setTt(v);
     if (v) localStorage.setItem(TT_KEY, JSON.stringify(v));
     else localStorage.removeItem(TT_KEY);
+    if (user && (v === null || v.url !== "demo")) saveProfile({ timetable_url: v?.url ?? null });
+  };
+
+  // Signed-in users get their saved timetable on any device.
+  useEffect(() => {
+    const url = profile?.timetable_url;
+    if (!url || (tt && tt.url === url)) return;
+    getTimetable({ data: { url } }).then((r) => {
+      setTt({ url, blocks: r.blocks });
+      localStorage.setItem(TT_KEY, JSON.stringify({ url, blocks: r.blocks }));
+    }).catch(() => {});
+  }, [profile?.timetable_url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Who's going: public counts + friends (signed in).
+  const loadSocial = async (ids: string[]) => {
+    if (!ids.length) return;
+    const [c, f, m] = await Promise.all([
+      supabase.rpc("going_counts", { _ids: ids }),
+      user ? supabase.rpc("friends_going", { _ids: ids }) : Promise.resolve({ data: [] }),
+      user ? supabase.from("attendance").select("activity_id").eq("user_id", user.id) : Promise.resolve({ data: [] }),
+    ]);
+    setSocial({
+      counts: Object.fromEntries((c.data ?? []).map((r: { activity_id: string; n: number }) => [r.activity_id, Number(r.n)])),
+      friends: Object.fromEntries((f.data ?? []).map((r: { activity_id: string; names: string[] }) => [r.activity_id, r.names])),
+    });
+    setMine(new Set((m.data ?? []).map((r: { activity_id: string }) => r.activity_id)));
+  };
+  useEffect(() => { if (results) loadSocial(results.map((r) => r.activity.id)); }, [results, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleGoing = async (id: string, title: string) => {
+    if (!user) return;
+    if (mine.has(id)) await supabase.from("attendance").delete().eq("user_id", user.id).eq("activity_id", id);
+    else await supabase.from("attendance").insert({ user_id: user.id, activity_id: id, activity_title: title });
+    if (results) loadSocial(results.map((r) => r.activity.id));
   };
 
   // Pull aggregated events from the watched pages (server refreshes hourly).
