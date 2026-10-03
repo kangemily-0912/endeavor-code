@@ -544,8 +544,8 @@ function ResultCard({
       {friends.length > 0 && <span className="text-social-ink">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
       <span className="ml-auto inline-flex items-center gap-3">
         {a.url && (
-          <a href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">
-            View original <ExternalLink className="size-3.5" />
+          <a href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground shadow-sm transition hover:brightness-95 active:scale-95">
+            Learn more <ExternalLink className="size-3.5" />
           </a>
         )}
         <Link to="/activity/$id" params={{ id: a.id }} className="inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">

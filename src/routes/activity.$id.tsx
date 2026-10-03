@@ -116,7 +116,7 @@ function DetailPage() {
           ) : <Link to="/auth" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Sign in to say you're going</Link>}
           <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Users className="size-4" />{going} going</span>
           {friends.length > 0 && <span className="text-sm text-social-ink">Friends: {friends.join(", ")}</span>}
-          {a.url && <a href={a.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-ink hover:underline">Sign up <ArrowRight className="size-4" /></a>}
+          {a.url && <a href={a.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-95 active:scale-95">Learn more <ExternalLink className="size-4" /></a>}
         </div>
 
         <section className="mt-8 rounded-2xl border border-border bg-card p-5">
