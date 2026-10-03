@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, CalendarDays, MapPin, Search, Ticket, Users } from "lucide-react";
+import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 
@@ -54,7 +55,7 @@ const steps = [
   },
 ];
 
-function AccentText({ children }: { children: React.ReactNode }) {
+function AccentText({ children }: { children: ReactNode }) {
   return <span className="font-serif font-normal italic">{children}</span>;
 }
 

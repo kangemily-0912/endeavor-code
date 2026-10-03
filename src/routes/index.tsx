@@ -245,13 +245,13 @@ function Index() {
           <BrandLogo className="h-12 sm:h-14" />
         </Link>
         <div className="flex items-center gap-2">
-          <Link to="/about" className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-card hover:text-foreground">
-            About
-          </Link>
           <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 font-mono text-xs text-muted-foreground">
             <span className="size-1.5 rounded-full bg-accent animate-pulse-dot" />
             {DEMO_LOCATION} · {nowMin === null ? "…" : formatTime(nowMin)}
           </div>
+          <Link to="/about" className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-card hover:text-foreground">
+            About
+          </Link>
           {user ? (
             <Link to="/profile" className="rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold hover:text-accent-ink">
               {profile?.display_name ?? "Profile"}
