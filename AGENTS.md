@@ -16,3 +16,4 @@
 - Map venue coordinates: verified table in src/lib/geo.ts → OpenStreetMap Nominatim lookup (server + browser cache, 1 req/s) → town centre flagged 'Approximate location'; never draw distance radii, journey time is the reachability truth.
 - Saved activities + what-you-liked reasons live in browser localStorage (src/lib/likes.ts) and nudge ranking ×1.2 for similar items; no login needed.
 - Render the Event Spark brand through the shared BrandLogo component so the supplied logo stays consistent across entry points.
+- Keep the public About story on its own `/about` route and link it from the home header so it remains shareable and discoverable.
