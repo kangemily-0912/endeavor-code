@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
+  CalendarCheck,
+  CalendarX,
   Bus,
   Clock,
   Footprints,
@@ -17,6 +19,24 @@ import { ACTIVITIES, DEMO_LOCATION, type Journey } from "@/lib/activities";
 import { getEmberJourneys } from "@/lib/ember.functions";
 import { getLiveEvents, type LiveEvent, type SourceStatus } from "@/lib/live-events.functions";
 import type { Activity } from "@/lib/activities";
+import { getTimetable, type BusyBlock } from "@/lib/timetable.functions";
+
+const TT_KEY = "wayfare.timetable";
+
+// Demo timetable relative to now, so judges can see clash-avoidance instantly.
+function demoTimetable(): BusyBlock[] {
+  const at = (offMin: number) => {
+    const d = new Date(Date.now() + offMin * 60000);
+    const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d);
+    const g = (t: string) => p.find((x) => x.type === t)?.value ?? "00";
+    return `${g("year")}-${g("month")}-${g("day")}T${String(Number(g("hour")) % 24).padStart(2, "0")}:${g("minute")}`;
+  };
+  return [
+    { title: "CS2001 Lecture", start: at(90), end: at(150) },
+    { title: "MT1002 Tutorial", start: at(300), end: at(360) },
+    { title: "CS2003 Lab", start: at(24 * 60 + 60), end: at(24 * 60 + 180) },
+  ];
+}
 
 // Minutes from now until a Europe/London local "YYYY-MM-DDTHH:mm".
 function londonOffsetMin(localIso: string): number {
@@ -107,6 +127,20 @@ function Index() {
   const [sources, setSources] = useState<SourceStatus[]>([]);
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(true);
+  const [tt, setTt] = useState<{ url: string; blocks: BusyBlock[] } | null>(null);
+  const [ignoreTt, setIgnoreTt] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TT_KEY);
+      if (raw) setTt(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const saveTt = (v: { url: string; blocks: BusyBlock[] } | null) => {
+    setTt(v);
+    if (v) localStorage.setItem(TT_KEY, JSON.stringify(v));
+    else localStorage.removeItem(TT_KEY);
+  };
 
   // Pull aggregated events from the watched pages (server refreshes hourly).
   useEffect(() => {
@@ -151,7 +185,19 @@ function Index() {
 
     setLiveCount(Object.values(liveJourneys).filter(Boolean).length);
     const pool = [...ACTIVITIES, ...liveEvents.map(toActivity).filter((a): a is Activity => !!a)];
-    setResults(recommend(q, nowMin, liveJourneys, pool));
+    let ranked = recommend(q, nowMin, liveJourneys, pool);
+    if (tt && !ignoreTt) {
+      const blocks = tt.blocks.map((b) => ({ title: b.title, s: londonOffsetMin(b.start), e: londonOffsetMin(b.end) }));
+      ranked = ranked
+        .map((r) => {
+          const from = (r.journey?.leaveByMin ?? r.startMin) - nowMin;
+          const to = r.endMin - nowMin + (r.journey?.totalMin ?? 0); // include getting back
+          const hit = blocks.find((b) => b.s < to && b.e > from);
+          return hit ? { ...r, clash: hit.title, score: Math.round(r.score * 0.1) } : r;
+        })
+        .sort((a, b) => b.score - a.score);
+    }
+    setResults(ranked);
     setLoading(false);
   };
 
@@ -259,6 +305,11 @@ function Index() {
           </div>
         </section>
       )}
+
+      {/* Timetable */}
+      <section className="relative z-10 mx-auto max-w-5xl px-6 pb-4">
+        <TimetablePanel tt={tt} onSave={saveTt} ignore={ignoreTt} setIgnore={setIgnoreTt} onChange={() => results && runSearch(query)} />
+      </section>
 
       {/* Live sources strip */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pb-8">
@@ -404,6 +455,11 @@ function ResultCard({
                 <Zap className="size-3" /> Live Ember
               </span>
             )}
+            {result.clash && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/20 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-destructive uppercase">
+                <CalendarX className="size-3" /> Clashes with {result.clash}
+              </span>
+            )}
             {a.live && (
               <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
                 Live listing
@@ -525,5 +581,99 @@ function ResultCard({
         </div>
       )}
     </article>
+  );
+}
+
+function TimetablePanel({
+  tt, onSave, ignore, setIgnore, onChange,
+}: {
+  tt: { url: string; blocks: BusyBlock[] } | null;
+  onSave: (v: { url: string; blocks: BusyBlock[] } | null) => void;
+  ignore: boolean;
+  setIgnore: (v: boolean) => void;
+  onChange: () => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { onChange(); /* re-rank when timetable changes */ }, [tt, ignore]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const connect = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await getTimetable({ data: { url } });
+      onSave({ url, blocks: r.blocks }); setOpen(false); setUrl("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Couldn't read that calendar");
+    } finally { setBusy(false); }
+  };
+
+  const upcoming = tt?.blocks.filter((b) => b.end > new Date().toISOString().slice(0, 16)).slice(0, 3) ?? [];
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
+            <CalendarCheck className="size-4 text-accent" />
+          </div>
+          <div>
+            <p className="font-display text-sm font-semibold">
+              {tt ? `Timetable connected · ${tt.blocks.length} classes in the next 2 weeks` : "Add your class timetable"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {tt ? (ignore ? "Ignoring your timetable for this search" : "We'll steer you away from anything that clashes with class") : "Link your Outlook calendar so we never suggest something during class"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {tt && (
+            <label className="flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs">
+              <input type="checkbox" checked={ignore} onChange={(e) => setIgnore(e.target.checked)} className="accent-primary" />
+              Ignore timetable
+            </label>
+          )}
+          {tt ? (
+            <button onClick={() => onSave(null)} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">Remove</button>
+          ) : (
+            <>
+              <button onClick={() => setOpen((o) => !o)} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground">Connect Outlook</button>
+              <button onClick={() => onSave({ url: "demo", blocks: demoTimetable() })} className="rounded-full border border-border px-3 py-1.5 text-xs">Try demo timetable</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {tt && !ignore && upcoming.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {upcoming.map((b) => (
+            <span key={b.start + b.title} className="rounded-full bg-secondary px-2.5 py-1 font-mono text-[10px] text-secondary-foreground">
+              {b.title} · {new Date(b.start + ":00Z").toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" })} {b.start.slice(11)}–{b.end.slice(11)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {open && !tt && (
+        <div className="mt-4 space-y-3 border-t border-border pt-4">
+          <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+            <li>Open Outlook on the web → Settings → Calendar → Shared calendars</li>
+            <li>Under “Publish a calendar”, pick your calendar, choose “Can view all details”, click Publish</li>
+            <li>Copy the <span className="text-foreground">ICS</span> link and paste it below</li>
+          </ol>
+          <div className="flex gap-2">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://outlook.office365.com/owa/calendar/…/calendar.ics"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-ring" />
+            <button disabled={busy || url.length < 8} onClick={connect}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+              {busy && <Loader2 className="size-3 animate-spin" />} Link
+            </button>
+          </div>
+          {err && <p className="text-xs text-destructive">{err}</p>}
+        </div>
+      )}
+    </div>
   );
 }
