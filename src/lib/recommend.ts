@@ -13,6 +13,7 @@ export type ScoredActivity = {
   reachable: boolean;
   arriveByMin: number;
   matchedTags: string[];
+  clash?: string | undefined; // timetable class this would overlap
 };
 
 const TAG_KEYWORDS: Record<string, string[]> = {
