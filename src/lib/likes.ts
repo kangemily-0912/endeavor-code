@@ -51,7 +51,7 @@ export function useLikes(): Record<string, Like> {
   return v;
 }
 
-const norm = (s: string) => s.toLowerCase().split(",")[0].trim();
+const norm = (s: string) => (s.toLowerCase().split(",")[0] ?? "").trim();
 
 // Returns which saved likes this activity resembles, based on the reasons the user gave.
 export function likeMatch(r: ScoredActivity, likes: Like[]): string | null {
