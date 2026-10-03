@@ -272,6 +272,12 @@ function Index() {
         </div>
       </section>
 
+      {/* Timetable */}
+      <section className="relative z-10 mx-auto max-w-3xl px-6 pb-8">
+        <TimetablePanel tt={tt} onSave={saveTt} ignore={ignoreTt} setIgnore={setIgnoreTt} onChange={() => results && runSearch(query)} />
+      </section>
+
+
       {/* Loading */}
       {loading && (
         <section className="relative z-10 mx-auto max-w-3xl px-6 pb-24 text-center">
@@ -305,11 +311,6 @@ function Index() {
           </div>
         </section>
       )}
-
-      {/* Timetable */}
-      <section className="relative z-10 mx-auto max-w-5xl px-6 pb-4">
-        <TimetablePanel tt={tt} onSave={saveTt} ignore={ignoreTt} setIgnore={setIgnoreTt} onChange={() => results && runSearch(query)} />
-      </section>
 
       {/* Live sources strip */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pb-8">
