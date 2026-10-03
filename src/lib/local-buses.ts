@@ -1,27 +1,31 @@
 import type { Journey } from "./activities";
+import data from "./bus-timetable.json";
 
-// Non-Ember buses from Dundee, kept as timetable patterns (no free live feed
-// exists for these operators in Scotland). Times are approximate.
-type Route = {
-  operator: string;
-  to: RegExp; // destination towns this route serves
-  stop: string;
-  firstMin: number; // first departure, minutes after midnight
-  lastMin: number;
-  everyMin: number;
-  offsetMin: number; // minute past the hour pattern starts
-  rideMin: number;
+// Every bus that serves St Andrews, from the official Bus Open Data (Traveline)
+// GTFS timetable for Scotland. Regenerate bus-timetable.json to refresh.
+type Stop = [string, string, number, number]; // area (S=St Andrews, D=Dundee), name, lat, lon
+type Trip = [number, string, string, [number, number][]]; // route, service, headsign, [stop, min]
+const TT = data as unknown as {
+  base: string;
+  stops: Stop[];
+  routes: [string, string][];
+  services: Record<string, string>;
+  trips: Trip[];
 };
 
-export const LOCAL_ROUTES: Route[] = [
-  { operator: "Stagecoach 99", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 360, lastMin: 1410, everyMin: 20, offsetMin: 5, rideMin: 37 },
-  { operator: "Stagecoach 99C", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1320, everyMin: 30, offsetMin: 15, rideMin: 48 },
-  { operator: "Stagecoach 99D", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1140, everyMin: 60, offsetMin: 35, rideMin: 42 },
-  { operator: "Moffat & Williamson 92", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 480, lastMin: 1080, everyMin: 60, offsetMin: 50, rideMin: 45 },
-  { operator: "Stagecoach 9C", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 10, rideMin: 55 },
-  { operator: "Stagecoach 90", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 40, rideMin: 50 },
-  { operator: "Stagecoach 91", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 25, rideMin: 52 },
-];
+function dayIndex(date = new Date()): number {
+  const base = new Date(TT.base + "T00:00:00");
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((d.getTime() - base.getTime()) / 86400000);
+}
+
+function runsToday(service: string): boolean {
+  const i = dayIndex();
+  const bits = TT.services[service];
+  return !!bits && i >= 0 && i < bits.length && bits[i] === "1";
+}
+
+export const LOCAL_ROUTE_NAMES = Array.from(new Set(TT.routes.map(([n, a]) => `${a} ${n}`)));
 
 export function localBusOptions(
   town: string,
@@ -30,27 +34,34 @@ export function localBusOptions(
   firstMileMin = 6,
   lastMileMin = 6,
 ): Journey[] {
+  if (!/st\.? andrews/i.test(town)) return [];
   const out: Journey[] = [];
-  for (const r of LOCAL_ROUTES) {
-    if (!r.to.test(town)) continue;
-    for (let d = r.firstMin; d <= r.lastMin; d += r.everyMin) {
-      const dep = Math.floor(d / 60) * 60 + ((d % 60) + r.offsetMin) % 60;
-      const leaveBy = dep - firstMileMin;
-      const arrive = dep + r.rideMin + lastMileMin;
-      if (leaveBy < nowMin || arrive > startMin) continue;
-      out.push({
-        operator: r.operator,
-        leaveByMin: leaveBy,
-        departMin: dep,
-        arriveMin: arrive,
-        totalMin: arrive - leaveBy,
-        legs: [
-          { mode: "walk", label: `Walk to ${r.stop}`, durationMin: firstMileMin },
-          { mode: "bus", label: `${r.operator} → ${town}`, durationMin: r.rideMin },
-          { mode: "walk", label: "Walk to the venue", durationMin: lastMileMin },
-        ],
-      });
-    }
+  for (const [ri, svc, headsign, calls] of TT.trips) {
+    if (!runsToday(svc)) continue;
+    const from = calls.findIndex(([s]) => TT.stops[s]![0] === "D");
+    if (from < 0) continue;
+    const later = calls.slice(from + 1).filter(([s]) => TT.stops[s]![0] === "S");
+    if (!later.length) continue;
+    const to = later.find(([s]) => /bus station/i.test(TT.stops[s]![1])) ?? later[later.length - 1]!;
+    const [fs, dep] = calls[from]!;
+    const [ts, arrBus] = to;
+    const [name, agency] = TT.routes[ri]!;
+    const operator = `${agency.replace(" East Scotland", "")} ${name}`;
+    const leaveBy = dep - firstMileMin;
+    const arrive = arrBus + lastMileMin;
+    if (leaveBy < nowMin || arrive > startMin) continue;
+    out.push({
+      operator,
+      leaveByMin: leaveBy,
+      departMin: dep,
+      arriveMin: arrive,
+      totalMin: arrive - leaveBy,
+      legs: [
+        { mode: "walk", label: `Walk to ${TT.stops[fs]![1]}`, durationMin: firstMileMin },
+        { mode: "bus", label: `${operator} towards ${headsign} → ${TT.stops[ts]![1]}`, durationMin: arrBus - dep },
+        { mode: "walk", label: "Walk to the venue", durationMin: lastMileMin },
+      ],
+    });
   }
   return out;
 }
@@ -69,5 +80,5 @@ export function combineOptions(options: Journey[]): Journey | null {
     seen.add(k);
     return true;
   });
-  return { ...best!, alternatives: alts.slice(0, 4) };
+  return { ...best!, alternatives: alts.slice(0, 6) };
 }

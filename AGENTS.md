@@ -11,3 +11,4 @@
 # Rules
 - Live events are scraped from public pages listed in src/lib/live-events.functions.ts, extracted by AI, cached in server memory for 1h — no DB needed for the demo.
 - Student timetables come from a published Outlook ICS link, parsed server-side and stored in browser localStorage (no login/DB); clashes cut score ×0.1, user can toggle ignore.
+- Non-Ember bus times come from the official Scotland Bus Open Data GTFS, pre-extracted into src/lib/bus-timetable.json (St Andrews + Dundee stops, 60-day calendar); regenerate it periodically since the calendar window expires.
