@@ -1,7 +1,10 @@
-import { ACTIVITIES, DEMO_NOW_MIN, type Activity } from "./activities";
+import { ACTIVITIES, type Activity, type Journey } from "./activities";
 
 export type ScoredActivity = {
   activity: Activity;
+  journey: Journey | null;
+  startMin: number;
+  endMin: number;
   interestMatch: number; // 0..1
   timeFit: number; // 0..1
   reachability: number; // 0..1
@@ -20,7 +23,7 @@ const TAG_KEYWORDS: Record<string, string[]> = {
   creative: ["creative", "art", "draw", "drawing", "paint", "painting", "craft", "make", "making", "pottery"],
   music: ["music", "gig", "concert", "sing", "singing", "open mic", "band", "live"],
   social: ["social", "meet", "people", "friends", "community", "chat"],
-  food: ["food", "eat", "eating", "coffee", "café", "cafe", "taste", "tasting", "forage", "foraging"],
+  food: ["food", "eat", "eating", "coffee", "café", "cafe", "taste", "tasting", "forage", "foraging", "whisky"],
   calm: ["calm", "relax", "relaxing", "chill", "quiet", "gentle", "slow"],
   adventure: ["adventure", "adventurous", "kayak", "kayaking", "water", "sea", "thrill"],
   games: ["game", "games", "board game", "puzzle"],
@@ -48,8 +51,8 @@ function interestScore(activity: Activity, wanted: string[]): { score: number; m
   return { score: Math.min(1, score), matched };
 }
 
-function timeFitScore(activity: Activity, nowMin: number): number {
-  const minsUntilStart = activity.startMin - nowMin;
+function timeFitScore(startMin: number, nowMin: number): number {
+  const minsUntilStart = startMin - nowMin;
   if (minsUntilStart < 0) return 0; // already started
   if (minsUntilStart <= 90) return 1;
   if (minsUntilStart <= 180) return 0.85;
@@ -57,12 +60,17 @@ function timeFitScore(activity: Activity, nowMin: number): number {
   return 0.4;
 }
 
-function reachabilityScore(activity: Activity, nowMin: number): { score: number; reachable: boolean } {
-  const leaveBy = activity.journey.leaveByMin;
-  const arriveBy = leaveBy + activity.journey.totalMin;
-  const canArrive = leaveBy >= nowMin && arriveBy <= activity.startMin;
+function reachabilityScore(
+  journey: Journey | null,
+  startMin: number,
+  nowMin: number,
+): { score: number; reachable: boolean } {
+  if (!journey) return { score: 0, reachable: false };
+  const leaveBy = journey.leaveByMin;
+  const arriveBy = leaveBy + journey.totalMin;
+  const canArrive = leaveBy >= nowMin && arriveBy <= startMin;
   if (!canArrive) return { score: 0, reachable: false };
-  const t = activity.journey.totalMin;
+  const t = journey.totalMin;
   let score: number;
   if (t <= 15) score = 1;
   else if (t <= 30) score = 0.9;
@@ -70,7 +78,7 @@ function reachabilityScore(activity: Activity, nowMin: number): { score: number;
   else if (t <= 70) score = 0.55;
   else score = 0.35;
   // Buffer bonus: leaving soon is fine, but very tight margins reduce confidence
-  const bufferMin = activity.startMin - arriveBy;
+  const bufferMin = startMin - arriveBy;
   if (bufferMin < 5) score *= 0.9;
   return { score, reachable: true };
 }
@@ -82,24 +90,63 @@ function availabilityScore(activity: Activity): number {
   return 0.9;
 }
 
-export function recommend(query: string, nowMin: number = DEMO_NOW_MIN): ScoredActivity[] {
+// Resolve each activity's journey: local walk, live Ember quote, or fallback.
+export function buildJourney(
+  activity: Activity,
+  nowMin: number,
+  liveJourneys: Record<string, Journey | null>,
+): Journey | null {
+  if (activity.walkMin != null) {
+    const startMin = nowMin + activity.startOffsetMin;
+    return {
+      leaveByMin: startMin - activity.walkMin,
+      totalMin: activity.walkMin,
+      legs: [{ mode: "walk", label: `Walk to ${activity.venue}`, durationMin: activity.walkMin }],
+    };
+  }
+  if (activity.ember) {
+    const live = liveJourneys[activity.ember.destQuery];
+    if (live) return live;
+    return null; // no live departure gets there in time
+  }
+  if (activity.fallbackJourney) {
+    return {
+      leaveByMin: nowMin + activity.fallbackJourney.leaveOffsetMin,
+      totalMin: activity.fallbackJourney.totalMin,
+      legs: activity.fallbackJourney.legs,
+    };
+  }
+  return null;
+}
+
+export function recommend(
+  query: string,
+  nowMin: number,
+  liveJourneys: Record<string, Journey | null> = {},
+): ScoredActivity[] {
   const wanted = parseIntent(query);
   const results: ScoredActivity[] = ACTIVITIES.map((activity) => {
+    const startMin = nowMin + activity.startOffsetMin;
+    const endMin = startMin + activity.durationMin;
+    const journey = buildJourney(activity, nowMin, liveJourneys);
     const { score: interestMatch, matched } = interestScore(activity, wanted);
-    const timeFit = timeFitScore(activity, nowMin);
-    const { score: reachability, reachable } = reachabilityScore(activity, nowMin);
+    const timeFit = timeFitScore(startMin, nowMin);
+    const { score: reachability, reachable } = reachabilityScore(journey, startMin, nowMin);
     const availability = availabilityScore(activity);
     // Recommendation Score = Interest Match × Time Fit × Reachability × Availability
     const raw = interestMatch * timeFit * reachability * availability;
     return {
       activity,
+      journey,
+      startMin,
+      endMin,
       interestMatch,
       timeFit,
       reachability,
       availability,
       reachable,
       score: Math.round(raw * 100),
-      arriveByMin: activity.journey.leaveByMin + activity.journey.totalMin,
+      arriveByMin: journey ? journey.leaveByMin + journey.totalMin : startMin,
       matchedTags: matched,
     };
   });
