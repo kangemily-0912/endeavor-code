@@ -4,6 +4,9 @@ This project was built with [Lovable](https://lovable.dev).
 
 **Live app**: https://events-park.lovable.app
 
+**Fancy app**: [
+](https://delightful-web-artisans.lovable.app)
+
 ## Build with Lovable
 
 Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f5770966-8530-4bd3-8867-63913207bf21).
