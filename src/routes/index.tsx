@@ -486,7 +486,13 @@ function ResultCard({
   isMine,
   signedIn,
   onGoing,
+  selected,
+  onSelect,
+  outside,
 }: {
+  selected?: boolean;
+  onSelect?: () => void;
+  outside?: boolean;
   result: ScoredActivity;
   rank: number;
   index: number;
@@ -519,7 +525,11 @@ function ResultCard({
 
   return (
     <article
+      id={`card-${a.id}`}
+      onClick={onSelect}
       className={cn(
+        selected && "wf-card-selected",
+        outside && result.reachable && "opacity-75",
         "animate-rise-in overflow-hidden rounded-3xl border bg-card shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift",
         isTop ? "border-primary-ink/40 shadow-lift ring-4 ring-primary/40" : "border-border",
         !result.reachable && "opacity-60",
