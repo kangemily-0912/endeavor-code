@@ -66,8 +66,8 @@ function reachabilityScore(activity: Activity, nowMin: number): { score: number;
   let score: number;
   if (t <= 15) score = 1;
   else if (t <= 30) score = 0.9;
-  else if (t <= 45) score = 0.75;
-  else if (t <= 60) score = 0.55;
+  else if (t <= 50) score = 0.75;
+  else if (t <= 70) score = 0.55;
   else score = 0.35;
   // Buffer bonus: leaving soon is fine, but very tight margins reduce confidence
   const bufferMin = activity.startMin - arriveBy;
