@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { List, Map as MapIcon } from "lucide-react";
 const ResultsMap = lazy(() => import("@/components/ResultsMap"));
 import {
@@ -182,9 +182,18 @@ function Index() {
     return () => clearInterval(t);
   }, []);
 
+  // Coming back from a Details page: restore the last search instead of an empty page.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (nowMin === null || syncing || restored.current) return;
+    restored.current = true;
+    try { const q = sessionStorage.getItem("wayfare.lastQuery"); if (q) runSearch(q); } catch { /* ignore */ }
+  }, [nowMin, syncing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const runSearch = async (q: string) => {
     if (!q.trim() || nowMin === null) return;
     setQuery(q);
+    try { sessionStorage.setItem("wayfare.lastQuery", q); } catch { /* ignore */ }
     setLoading(true);
     setResults(null);
 
