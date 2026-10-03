@@ -14,3 +14,4 @@
 - Non-Ember bus times come from the official Scotland Bus Open Data GTFS, pre-extracted into src/lib/bus-timetable.json (St Andrews + Dundee stops, 60-day calendar); regenerate it periodically since the calendar window expires.
 - Accounts, preferences, friendships and 'I'm going' live in Lovable Cloud (profiles/friendships/attendance tables); counts and friend lists are read via security-definer RPCs so no identities leak. Sorting/preference nudges live in src/lib/sorting.ts.
 - Map venue coordinates: verified table in src/lib/geo.ts → OpenStreetMap Nominatim lookup (server + browser cache, 1 req/s) → town centre flagged 'Approximate location'; never draw distance radii, journey time is the reachability truth.
+- Saved activities + what-you-liked reasons live in browser localStorage (src/lib/likes.ts) and nudge ranking ×1.2 for similar items; no login needed.
