@@ -306,7 +306,7 @@ function Index() {
 
           <div className="space-y-4">
             {results.slice(0, 6).map((r, i) => (
-              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} />
+              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0} />
             ))}
           </div>
         </section>
@@ -413,10 +413,12 @@ function ResultCard({
   result,
   rank,
   index,
+  nowMin,
 }: {
   result: ScoredActivity;
   rank: number;
   index: number;
+  nowMin: number;
 }) {
   const [open, setOpen] = useState(rank === 1);
   const { activity: a, journey } = result;
