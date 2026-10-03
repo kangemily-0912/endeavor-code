@@ -123,9 +123,10 @@ export function recommend(
   query: string,
   nowMin: number,
   liveJourneys: Record<string, Journey | null> = {},
+  pool: Activity[] = ACTIVITIES,
 ): ScoredActivity[] {
   const wanted = parseIntent(query);
-  const results: ScoredActivity[] = ACTIVITIES.map((activity) => {
+  const results: ScoredActivity[] = pool.map((activity) => {
     const startMin = nowMin + activity.startOffsetMin;
     const endMin = startMin + activity.durationMin;
     const journey = buildJourney(activity, nowMin, liveJourneys);
@@ -154,6 +155,7 @@ export function recommend(
 }
 
 export function formatTime(min: number): string {
+  min = ((min % 1440) + 1440) % 1440;
   const h = Math.floor(min / 60);
   const m = min % 60;
   const suffix = h >= 12 ? "PM" : "AM";

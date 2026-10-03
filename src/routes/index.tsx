@@ -15,6 +15,44 @@ import {
 } from "lucide-react";
 import { ACTIVITIES, DEMO_LOCATION, type Journey } from "@/lib/activities";
 import { getEmberJourneys } from "@/lib/ember.functions";
+import { getLiveEvents, type LiveEvent, type SourceStatus } from "@/lib/live-events.functions";
+import type { Activity } from "@/lib/activities";
+
+// Minutes from now until a Europe/London local "YYYY-MM-DDTHH:mm".
+function londonOffsetMin(localIso: string): number {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(now);
+  const g = (t: string) => Number(fmt.find((p) => p.type === t)?.value ?? 0);
+  const nowLocal = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"));
+  const [d, t] = localIso.split("T");
+  const [y, mo, da] = d!.split("-").map(Number);
+  const [h, mi] = t!.split(":").map(Number);
+  return Math.round((Date.UTC(y!, mo! - 1, da!, h!, mi!) - nowLocal) / 60000);
+}
+
+function toActivity(e: LiveEvent): Activity | null {
+  const off = londonOffsetMin(e.startIso);
+  if (off < 0) return null;
+  const base = {
+    id: "live-" + e.id, title: e.title, venue: e.venue, town: e.town, source: e.source,
+    tags: e.tags, startOffsetMin: off, durationMin: e.durationMin, priceGbp: e.priceGbp,
+    spacesLeft: 20, description: e.description, url: e.url, live: true,
+    dateLabel: off > 18 * 60 || londonOffsetMin(e.startIso.slice(0, 10) + "T00:00") > 0
+      ? new Date(e.startIso + ":00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+      : undefined,
+  };
+  if (/st\.? andrews/i.test(e.town)) {
+    return { ...base, fallbackJourney: { leaveOffsetMin: off - 60, totalMin: 50, legs: [
+      { mode: "walk", label: "Walk to Dundee bus station", durationMin: 6 },
+      { mode: "bus", label: "Stagecoach 99 → St Andrews", durationMin: 38 },
+      { mode: "walk", label: `Walk to ${e.venue}`, durationMin: 6 },
+    ] } };
+  }
+  return { ...base, walkMin: 15 };
+}
 import { formatTime, recommend, type ScoredActivity } from "@/lib/recommend";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +103,22 @@ function Index() {
   const [results, setResults] = useState<ScoredActivity[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [liveCount, setLiveCount] = useState(0);
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(true);
+
+  // Pull aggregated events from the watched pages (server refreshes hourly).
+  useEffect(() => {
+    const load = () =>
+      getLiveEvents()
+        .then((r) => { if (!r) return; setLiveEvents(r.events); setSources(r.sources); setSyncedAt(r.at); })
+        .catch(() => {})
+        .finally(() => setSyncing(false));
+    load();
+    const t = setInterval(load, 10 * 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Clock starts on the client only, to avoid SSR hydration mismatch.
   useEffect(() => {
@@ -96,7 +150,8 @@ function Index() {
     }
 
     setLiveCount(Object.values(liveJourneys).filter(Boolean).length);
-    setResults(recommend(q, nowMin, liveJourneys));
+    const pool = [...ACTIVITIES, ...liveEvents.map(toActivity).filter((a): a is Activity => !!a)];
+    setResults(recommend(q, nowMin, liveJourneys, pool));
     setLoading(false);
   };
 
@@ -204,6 +259,33 @@ function Index() {
           </div>
         </section>
       )}
+
+      {/* Live sources strip */}
+      <section className="relative z-10 mx-auto max-w-5xl px-6 pb-8">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-xs text-muted-foreground">
+              <span className="text-foreground font-semibold">{liveEvents.length}</span> live events from{" "}
+              {sources.filter((s) => s.ok).length}/{sources.length || "…"} watched pages
+            </p>
+            <p className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+              {syncing ? <Loader2 className="size-3 animate-spin" /> : <span className="size-1.5 rounded-full bg-accent" />}
+              {syncing ? "Reading society & venue pages…" : syncedAt ? `Synced ${new Date(syncedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · refreshes hourly` : ""}
+            </p>
+          </div>
+          {sources.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {sources.map((s) => (
+                <a key={s.url} href={s.url} target="_blank" rel="noreferrer"
+                  className={cn("rounded-full border px-2.5 py-1 font-mono text-[10px]",
+                    s.ok ? "border-border text-foreground hover:border-primary" : "border-border text-muted-foreground line-through opacity-60")}>
+                  {s.name} {s.ok && <span className="text-accent">· {s.count}</span>}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* How it works — shown before first search */}
       {!results && !loading && (
@@ -322,12 +404,18 @@ function ResultCard({
                 <Zap className="size-3" /> Live Ember
               </span>
             )}
+            {a.live && (
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
+                Live listing
+              </span>
+            )}
             <span className="font-mono text-[10px] text-muted-foreground">{a.source}</span>
           </div>
           <h3 className="mt-1 font-display text-lg font-semibold leading-snug">{a.title}</h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Clock className="size-3.5" />
+              {a.dateLabel ? `${a.dateLabel} · ` : ""}
               {formatTime(result.startMin)} – {formatTime(result.endMin)}
             </span>
             <span className="inline-flex items-center gap-1">
@@ -340,8 +428,19 @@ function ResultCard({
             </span>
             <span className="inline-flex items-center gap-1">
               <Users className="size-3.5" />
-              {a.spacesLeft} spaces left
+              {a.live ? "Sign-up open" : `${a.spacesLeft} spaces left`}
             </span>
+            {a.url && (
+              <a
+                href={a.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                Sign up <ArrowRight className="size-3.5" />
+              </a>
+            )}
           </div>
         </div>
 
