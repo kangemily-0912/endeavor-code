@@ -78,16 +78,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Wayfare — Real-time local discovery & transport" },
+      {
+        name: "description",
+        content:
+          "Tell Wayfare what you feel like doing. We find local activities you can actually reach in time — with the journey built in.",
+      },
+      { name: "author", content: "Wayfare" },
+      { property: "og:title", content: "Wayfare — Real-time local discovery & transport" },
+      {
+        property: "og:description",
+        content:
+          "Turn “what do I feel like doing?” into “here's something you'll enjoy — and here's how to get there.”",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
