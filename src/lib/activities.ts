@@ -11,6 +11,12 @@ export type Journey = {
   live?: boolean | undefined; // true when built from the live Ember API
   pricePence?: number | undefined; // live fare, when known
   seatsLeft?: number | undefined; // live seat availability, when known
+  operator?: string | undefined; // e.g. "Ember", "Stagecoach 99"
+  departMin?: number | undefined; // bus departs (live estimate when realtime)
+  arriveMin?: number | undefined; // arrive at venue
+  realtime?: boolean | undefined; // departure time comes from live GTFS-RT tracking
+  delayMin?: number | undefined; // live minus scheduled
+  alternatives?: Journey[] | undefined; // other ways to get there, all operators
 };
 
 export type Activity = {

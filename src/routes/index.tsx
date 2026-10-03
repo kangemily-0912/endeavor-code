@@ -175,7 +175,7 @@ function Index() {
       startMin: nowMin + a.startOffsetMin,
     }));
 
-    let liveJourneys: Record<string, Journey | null> = {};
+    let liveJourneys: Record<string, Journey[]> = {};
     try {
       const res = await getEmberJourneys({ data: { requests, nowMin } });
       liveJourneys = res.journeys;
@@ -183,7 +183,7 @@ function Index() {
       // API unreachable — remote activities simply rank as unreachable
     }
 
-    setLiveCount(Object.values(liveJourneys).filter(Boolean).length);
+    setLiveCount(Object.values(liveJourneys).filter((l) => l.length).length);
     const pool = [...ACTIVITIES, ...liveEvents.map(toActivity).filter((a): a is Activity => !!a)];
     let ranked = recommend(q, nowMin, liveJourneys, pool);
     if (tt && !ignoreTt) {
@@ -306,7 +306,7 @@ function Index() {
 
           <div className="space-y-4">
             {results.slice(0, 6).map((r, i) => (
-              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} />
+              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0} />
             ))}
           </div>
         </section>
@@ -396,6 +396,13 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+function dueLabel(depMin: number, nowMin: number) {
+  const d = depMin - nowMin;
+  if (d <= 0) return "due now";
+  if (d < 60) return `in ${d} min`;
+  return `in ${Math.floor(d / 60)}h ${d % 60}m`;
+}
+
 function LegIcon({ mode }: { mode: "walk" | "bus" | "train" }) {
   if (mode === "bus") return <Bus className="size-3.5" />;
   if (mode === "train") return <Train className="size-3.5" />;
@@ -406,10 +413,12 @@ function ResultCard({
   result,
   rank,
   index,
+  nowMin,
 }: {
   result: ScoredActivity;
   rank: number;
   index: number;
+  nowMin: number;
 }) {
   const [open, setOpen] = useState(rank === 1);
   const { activity: a, journey } = result;
@@ -453,7 +462,12 @@ function ResultCard({
             )}
             {journey?.live && (
               <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-accent uppercase">
-                <Zap className="size-3" /> Live Ember
+                <Zap className="size-3" /> {journey.realtime ? "Live tracking" : "Live Ember"}
+              </span>
+            )}
+            {result.reachable && journey?.departMin != null && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
+                <Bus className="size-3" /> {journey.operator} {dueLabel(journey.departMin, nowMin)}
               </span>
             )}
             {result.clash && (
@@ -545,6 +559,34 @@ function ResultCard({
                     </li>
                   ))}
                 </ol>
+                {journey.departMin != null && (
+                  <p className="mt-3 font-mono text-[11px] text-muted-foreground">
+                    {journey.realtime ? "● Live: " : "Timetable: "}
+                    {journey.operator} departs {formatTime(journey.departMin)} ({dueLabel(journey.departMin, nowMin)})
+                    {journey.realtime && journey.delayMin ? ` · ${journey.delayMin > 0 ? journey.delayMin + " min late" : -journey.delayMin + " min early"}` : ""}
+                  </p>
+                )}
+                {!!journey.alternatives?.length && (
+                  <div className="mt-4">
+                    <h5 className="mb-2 font-mono text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                      Other buses
+                    </h5>
+                    <ul className="space-y-1.5">
+                      {journey.alternatives.map((alt, i) => (
+                        <li key={i} className="flex flex-wrap items-center gap-x-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs">
+                          <span className="font-semibold text-foreground">{alt.operator}</span>
+                          <span className="font-mono text-primary">{dueLabel(alt.departMin ?? alt.leaveByMin, nowMin)}</span>
+                          <span className="font-mono text-muted-foreground">
+                            dep {formatTime(alt.departMin ?? alt.leaveByMin)} → arr {formatTime(alt.arriveMin ?? alt.leaveByMin + alt.totalMin)}
+                          </span>
+                          <span className="ml-auto font-mono text-[10px] text-muted-foreground uppercase">
+                            {alt.realtime ? "● live" : alt.live ? "Ember" : "timetable"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-xs leading-relaxed text-muted-foreground">

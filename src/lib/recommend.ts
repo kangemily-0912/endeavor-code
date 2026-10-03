@@ -1,4 +1,5 @@
 import { ACTIVITIES, type Activity, type Journey } from "./activities";
+import { combineOptions, localBusOptions } from "./local-buses";
 
 export type ScoredActivity = {
   activity: Activity;
@@ -95,7 +96,7 @@ function availabilityScore(activity: Activity): number {
 export function buildJourney(
   activity: Activity,
   nowMin: number,
-  liveJourneys: Record<string, Journey | null>,
+  liveJourneys: Record<string, Journey[]>,
 ): Journey | null {
   if (activity.walkMin != null) {
     const startMin = nowMin + activity.startOffsetMin;
@@ -106,9 +107,16 @@ export function buildJourney(
     };
   }
   if (activity.ember) {
-    const live = liveJourneys[activity.ember.destQuery];
-    if (live) return live;
-    return null; // no live departure gets there in time
+    // Ember (live) + any other operators serving that town, fastest first.
+    const startMin = nowMin + activity.startOffsetMin;
+    return combineOptions([
+      ...(liveJourneys[activity.ember.destQuery] ?? []),
+      ...localBusOptions(activity.town, nowMin, startMin, activity.ember.firstMileMin, activity.ember.lastMileMin),
+    ]);
+  }
+  if (activity.fallbackJourney && /st\.? andrews/i.test(activity.town)) {
+    const startMin = nowMin + activity.startOffsetMin;
+    return combineOptions(localBusOptions(activity.town, nowMin, startMin));
   }
   if (activity.fallbackJourney) {
     return {
@@ -123,7 +131,7 @@ export function buildJourney(
 export function recommend(
   query: string,
   nowMin: number,
-  liveJourneys: Record<string, Journey | null> = {},
+  liveJourneys: Record<string, Journey[]> = {},
   pool: Activity[] = ACTIVITIES,
 ): ScoredActivity[] {
   const wanted = parseIntent(query);
