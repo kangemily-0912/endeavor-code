@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { List, Map as MapIcon } from "lucide-react";
 const ResultsMap = lazy(() => import("@/components/ResultsMap"));
 import {
@@ -182,9 +182,18 @@ function Index() {
     return () => clearInterval(t);
   }, []);
 
+  // Coming back from a Details page: restore the last search instead of an empty page.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (nowMin === null || syncing || restored.current) return;
+    restored.current = true;
+    try { const q = sessionStorage.getItem("wayfare.lastQuery"); if (q) runSearch(q); } catch { /* ignore */ }
+  }, [nowMin, syncing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const runSearch = async (q: string) => {
     if (!q.trim() || nowMin === null) return;
     setQuery(q);
+    try { sessionStorage.setItem("wayfare.lastQuery", q); } catch { /* ignore */ }
     setLoading(true);
     setResults(null);
 
@@ -355,7 +364,7 @@ function Index() {
           </div>
 
           <div className={cn(split && "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6")}>
-            <div className={cn("space-y-4", mobileView === "map" && "hidden lg:block", !split && "")}>
+            <div key={`l-${mobileView}-${split}`} className={cn("wf-fade-in space-y-4", mobileView === "map" && "hidden lg:block", !split && "")}>
               {visible.map((r, i) => (
                 <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
                   going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
@@ -364,7 +373,7 @@ function Index() {
                   outside={!!profile?.max_travel_min && (r.journey?.totalMin ?? 0) > profile.max_travel_min} />
               ))}
             </div>
-            <div className={cn(mobileView === "list" && "hidden", split ? "lg:block" : "lg:hidden")}>
+            <div key={`m-${mobileView}`} className={cn("wf-fade-in", mobileView === "list" && "hidden", split ? "lg:block" : "lg:hidden")}>
               <div className="h-[70vh] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
                 <ClientOnly fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>
                   <Suspense fallback={<div className="h-full rounded-3xl border border-border bg-card" />}>

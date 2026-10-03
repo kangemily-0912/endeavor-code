@@ -1,11 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { geocodeVenues, type GeoHit } from "@/lib/geocode.functions";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Bus, CalendarCheck, CalendarX, Clock, Footprints, Wallet, X } from "lucide-react";
 import type { ScoredActivity } from "@/lib/recommend";
 import { formatTime } from "@/lib/recommend";
-import { coordsFor, REACH_META, reachState, TOWNS, type ReachState } from "@/lib/geo";
+import { knownVenue, locate, REACH_META, reachState, TOWNS, venueKey, type ReachState } from "@/lib/geo";
+
+const GEO_KEY = "wayfare.geocache.v1";
+const reduceMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -18,12 +22,12 @@ type Props = {
   onSelect: (id: string | null) => void;
 };
 
-function icon(state: ReachState, selected: boolean, outside: boolean, minutes: string) {
+function icon(state: ReachState, selected: boolean, outside: boolean, minutes: string, approx = false) {
   return L.divIcon({
     className: "",
     iconSize: [44, 44],
     iconAnchor: [22, 40],
-    html: `<div class="wf-pin wf-pin--${state}${selected ? " is-selected" : ""}${outside ? " is-outside" : ""}" role="img" aria-label="${REACH_META[state].label}"><span class="wf-pin__sym">${REACH_META[state].symbol}</span><span class="wf-pin__min">${minutes}</span></div>`,
+    html: `<div class="wf-pin wf-pin--${state}${selected ? " is-selected" : ""}${outside ? " is-outside" : ""}${approx ? " is-approx" : ""}" role="img" aria-label="${REACH_META[state].label}${approx ? ", approximate location" : ""}"><span class="wf-pin__sym">${REACH_META[state].symbol}</span><span class="wf-pin__min">${minutes}</span></div>`,
   });
 }
 
@@ -32,7 +36,31 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
   const markers = useRef<Record<string, L.Marker>>({});
+  const approxRef = useRef<Record<string, boolean>>({});
+  const fitted = useRef(false);
   const originLL = TOWNS[origin.toLowerCase()] ?? TOWNS["dundee"]!;
+  const [geo, setGeo] = useState<Record<string, GeoHit>>({});
+
+  // Resolve venue coordinates (cached in this browser and on the server). Failures fall back to town centre.
+  useEffect(() => {
+    let cached: Record<string, GeoHit> = {};
+    try { cached = JSON.parse(localStorage.getItem(GEO_KEY) ?? "{}"); } catch { /* ignore */ }
+    setGeo(cached);
+    const need = results
+      .map((r) => ({ venue: r.activity.venue, town: r.activity.town }))
+      .filter((p, i, arr) => !knownVenue(p.venue, p.town) && !(venueKey(p.venue, p.town) in cached) && arr.findIndex((q) => venueKey(q.venue, q.town) === venueKey(p.venue, p.town)) === i)
+      .slice(0, 20);
+    if (!need.length) return;
+    let alive = true;
+    geocodeVenues({ data: { places: need } })
+      .then((hits) => {
+        const next = { ...cached, ...hits };
+        try { localStorage.setItem(GEO_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+        if (alive) setGeo(next);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [results]);
 
   useEffect(() => {
     if (!el.current || map.current) return;
@@ -53,28 +81,27 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
     if (!m || !g) return;
     g.clearLayers();
     markers.current = {};
-    if (maxTravelMin) {
-      // ~0.7 km per minute of mixed bus + walking travel; an approximation of the reachable area.
-      L.circle(originLL, { radius: maxTravelMin * 700, className: "wf-reach-area", interactive: false }).addTo(g);
-    }
     L.marker(originLL, {
       icon: L.divIcon({ className: "", iconSize: [20, 20], iconAnchor: [10, 10], html: '<div class="wf-origin" aria-label="You are here"></div>' }),
       keyboard: false, interactive: false,
     }).addTo(g);
     const pts: L.LatLngExpression[] = [originLL];
     results.forEach((r) => {
-      const ll = coordsFor(r.activity.town, r.activity.venue);
+      const loc = locate(r.activity.venue, r.activity.town, geo);
+      const ll = loc.ll;
+      approxRef.current[r.activity.id] = loc.approx;
       pts.push(ll);
       const st = reachState(r, nowMin);
       const mins = r.journey ? `${r.journey.totalMin}′` : "—";
       const outside = !!maxTravelMin && (r.journey?.totalMin ?? 0) > maxTravelMin;
-      const mk = L.marker(ll, { icon: icon(st, r.activity.id === selectedId, outside, mins), title: r.activity.title, riseOnHover: true, zIndexOffset: r.activity.id === selectedId ? 1000 : 0 })
+      const mk = L.marker(ll, { icon: icon(st, r.activity.id === selectedId, outside, mins, loc.approx), title: r.activity.title, riseOnHover: true, zIndexOffset: r.activity.id === selectedId ? 1000 : 0 })
         .on("click", (e) => { L.DomEvent.stopPropagation(e); onSelect(r.activity.id); })
         .addTo(g);
       markers.current[r.activity.id] = mk;
     });
-    if (pts.length > 1) m.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 12 });
-  }, [results, maxTravelMin, nowMin]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (pts.length > 1) m.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 12, animate: fitted.current && !reduceMotion() });
+    fitted.current = true;
+  }, [results, maxTravelMin, nowMin, geo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Highlight + focus the selected marker.
   useEffect(() => {
@@ -82,11 +109,11 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
       const r = results.find((x) => x.activity.id === id);
       if (!r) return;
       const outside = !!maxTravelMin && (r.journey?.totalMin ?? 0) > maxTravelMin;
-      mk.setIcon(icon(reachState(r, nowMin), id === selectedId, outside, r.journey ? `${r.journey.totalMin}′` : "—"));
+      mk.setIcon(icon(reachState(r, nowMin), id === selectedId, outside, r.journey ? `${r.journey.totalMin}′` : "—", approxRef.current[id]));
       mk.setZIndexOffset(id === selectedId ? 1000 : 0);
     });
     const sel = selectedId ? markers.current[selectedId] : null;
-    if (sel && map.current) map.current.panTo(sel.getLatLng(), { animate: true });
+    if (sel && map.current) map.current.panTo(sel.getLatLng(), { animate: !reduceMotion(), duration: 0.6, easeLinearity: 0.4 });
   }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -109,13 +136,8 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
             {REACH_META[k].label}
           </span>
         ))}
-        {maxTravelMin && (
-          <span className="mt-1 inline-flex items-center gap-1.5 border-t border-border pt-1.5 text-muted-foreground">
-            <span className="size-3 rounded-full border border-dashed border-reach-foreground bg-reach/50" />
-            Within {maxTravelMin} min
-          </span>
-        )}
         <span className="text-muted-foreground">Numbers = minutes of travel</span>
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground"><span className="size-3 rounded-full border border-dashed border-muted-foreground" />Approximate location</span>
       </div>
 
       {/* Selected preview */}
@@ -132,6 +154,7 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
               {REACH_META[st].symbol} {REACH_META[st].label}
             </span>
             <h3 className="mt-1.5 pr-6 font-display text-base font-semibold leading-snug">{a.title}</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">{a.venue}, {a.town}{approxRef.current[a.id] ? " · Approximate location" : ""}</p>
             <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
               <span className="inline-flex items-center gap-1"><Clock className="size-3.5" />{a.dateLabel ? `${a.dateLabel} · ` : ""}Starts {formatTime(sel.startMin)}</span>
               <span className="inline-flex items-center gap-1"><Wallet className="size-3.5" />{a.priceGbp === 0 ? "Free" : `£${a.priceGbp}`}</span>
