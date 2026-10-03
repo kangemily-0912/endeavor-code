@@ -1,9 +1,6 @@
 import type { Activity } from "./activities";
 import type { LiveEvent } from "./live-events.functions";
 
-    { title: "CS2003 Lab", start: at(24 * 60 + 60), end: at(24 * 60 + 180) },
-  ];
-}
 
 // Minutes from now until a Europe/London local "YYYY-MM-DDTHH:mm".
 export function londonOffsetMin(localIso: string): number {
@@ -35,3 +32,9 @@ export function toActivity(e: LiveEvent): Activity | null {
     return { ...base, fallbackJourney: { leaveOffsetMin: off - 60, totalMin: 50, legs: [
       { mode: "walk", label: "Walk to Dundee bus station", durationMin: 6 },
       { mode: "bus", label: "Stagecoach 99 → St Andrews", durationMin: 38 },
+
+      { mode: "walk", label: `Walk to ${e.venue}`, durationMin: 6 },
+    ] } };
+  }
+  return { ...base, walkMin: 15 };
+}

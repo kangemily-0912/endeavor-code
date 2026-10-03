@@ -39,10 +39,8 @@ function demoTimetable(): BusyBlock[] {
   return [
     { title: "CS2001 Lecture", start: at(90), end: at(150) },
     { title: "MT1002 Tutorial", start: at(300), end: at(360) },
-      { mode: "walk", label: `Walk to ${e.venue}`, durationMin: 6 },
-    ] } };
-  }
-  return { ...base, walkMin: 15 };
+    { title: "CS2003 Lab", start: at(24 * 60 + 60), end: at(24 * 60 + 180) },
+  ];
 }
 import { formatTime, recommend, type ScoredActivity } from "@/lib/recommend";
 import { cn } from "@/lib/utils";
