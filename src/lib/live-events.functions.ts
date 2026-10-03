@@ -138,8 +138,8 @@ async function extract(
   const parsed = JSON.parse(args ?? '{"events":[]}') as { events: Partial<LiveEvent>[] };
   return (parsed.events ?? [])
     .filter((e) => e.title && e.startIso && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(e.startIso))
-    .map((e, i) => ({
-      id: `${source.name}-${(e.startIso ?? "").slice(0, 10)}-${e.title}-${i * 0}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-0$/, ""),
+    .map((e) => ({
+      id: `${source.name}-${(e.startIso ?? "").slice(0, 10)}-${e.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       title: e.title!,
       description: e.description ?? "",
       startIso: e.startIso!.slice(0, 16),
