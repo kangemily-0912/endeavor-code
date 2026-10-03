@@ -20,6 +20,7 @@ import { getEmberJourneys } from "@/lib/ember.functions";
 import { getLiveEvents, type LiveEvent, type SourceStatus } from "@/lib/live-events.functions";
 import type { Activity } from "@/lib/activities";
 import { getTimetable, type BusyBlock } from "@/lib/timetable.functions";
+import { londonOffsetMin, toActivity } from "@/lib/live-activity";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useProfile } from "@/hooks/use-auth";
@@ -38,40 +39,6 @@ function demoTimetable(): BusyBlock[] {
   return [
     { title: "CS2001 Lecture", start: at(90), end: at(150) },
     { title: "MT1002 Tutorial", start: at(300), end: at(360) },
-    { title: "CS2003 Lab", start: at(24 * 60 + 60), end: at(24 * 60 + 180) },
-  ];
-}
-
-// Minutes from now until a Europe/London local "YYYY-MM-DDTHH:mm".
-function londonOffsetMin(localIso: string): number {
-  const now = new Date();
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(now);
-  const g = (t: string) => Number(fmt.find((p) => p.type === t)?.value ?? 0);
-  const nowLocal = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"));
-  const [d, t] = localIso.split("T");
-  const [y, mo, da] = d!.split("-").map(Number);
-  const [h, mi] = t!.split(":").map(Number);
-  return Math.round((Date.UTC(y!, mo! - 1, da!, h!, mi!) - nowLocal) / 60000);
-}
-
-function toActivity(e: LiveEvent): Activity | null {
-  const off = londonOffsetMin(e.startIso);
-  if (off < 0) return null;
-  const base = {
-    id: "live-" + e.id, title: e.title, venue: e.venue, town: e.town, source: e.source,
-    tags: e.tags, startOffsetMin: off, durationMin: e.durationMin, priceGbp: e.priceGbp,
-    spacesLeft: 20, description: e.description, url: e.url, live: true,
-    dateLabel: off > 18 * 60 || londonOffsetMin(e.startIso.slice(0, 10) + "T00:00") > 0
-      ? new Date(e.startIso + ":00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
-      : undefined,
-  };
-  if (/st\.? andrews/i.test(e.town)) {
-    return { ...base, fallbackJourney: { leaveOffsetMin: off - 60, totalMin: 50, legs: [
-      { mode: "walk", label: "Walk to Dundee bus station", durationMin: 6 },
-      { mode: "bus", label: "Stagecoach 99 → St Andrews", durationMin: 38 },
       { mode: "walk", label: `Walk to ${e.venue}`, durationMin: 6 },
     ] } };
   }
