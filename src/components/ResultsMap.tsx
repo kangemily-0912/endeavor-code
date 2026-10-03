@@ -32,7 +32,7 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
   const markers = useRef<Record<string, L.Marker>>({});
-  const originLL = TOWNS[origin.toLowerCase()] ?? TOWNS.dundee!;
+  const originLL = TOWNS[origin.toLowerCase()] ?? TOWNS["dundee"]!;
 
   useEffect(() => {
     if (!el.current || map.current) return;
