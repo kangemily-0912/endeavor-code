@@ -327,7 +327,7 @@ function Index() {
 
           <div className="space-y-4">
             {sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8).map((r, i) => (
-              <ResultCard key={r.activity.id} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
+              <ResultCard key={`${sortKey}-${r.activity.id}`} result={r} rank={i + 1} index={i} nowMin={nowMin ?? 0}
                 going={social.counts[r.activity.id] ?? 0} friends={social.friends[r.activity.id] ?? []}
                 isMine={mine.has(r.activity.id)} signedIn={!!user} onGoing={() => toggleGoing(r.activity.id, r.activity.title)} />
             ))}
