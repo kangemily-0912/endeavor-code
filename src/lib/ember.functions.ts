@@ -129,7 +129,7 @@ export const getEmberJourneys = createServerFn({ method: "POST" })
               matchLive(rt, leg.origin?.atco_code, schedDepSec) ??
               (leg.departure?.estimated ? Date.parse(leg.departure.estimated) / 1000 : null);
             const realtime = liveDepSec != null;
-            const delaySec = realtime ? liveDepSec - schedDepSec : 0;
+            const delaySec = liveDepSec != null ? liveDepSec - schedDepSec : 0;
             const depMin = isoToLondonMin(new Date((schedDepSec + delaySec) * 1000).toISOString());
             const arrMin = isoToLondonMin(
               new Date(Date.parse(leg.arrival?.estimated ?? arrIso) + (leg.arrival?.estimated ? 0 : delaySec * 1000)).toISOString(),
