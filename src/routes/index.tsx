@@ -112,7 +112,7 @@ function Index() {
   useEffect(() => {
     const load = () =>
       getLiveEvents()
-        .then((r) => { setLiveEvents(r.events); setSources(r.sources); setSyncedAt(r.at); })
+        .then((r) => { if (!r) return; setLiveEvents(r.events); setSources(r.sources); setSyncedAt(r.at); })
         .catch(() => {})
         .finally(() => setSyncing(false));
     load();
