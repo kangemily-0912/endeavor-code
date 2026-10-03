@@ -603,6 +603,7 @@ function ResultCard({
           )}
         />
       </button>
+      {goingRow}
 
       {open && (
         <div className="grid gap-5 border-t border-border p-5 sm:grid-cols-2">
