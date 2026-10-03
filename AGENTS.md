@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+# Rules
+- Live events are scraped from public pages listed in src/lib/live-events.functions.ts, extracted by AI, cached in server memory for 1h — no DB needed for the demo.
