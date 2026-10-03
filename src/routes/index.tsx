@@ -27,6 +27,8 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { applyPreferences, sortResults, SORTS, type Social, type SortKey } from "@/lib/sorting";
+import { applyLikes, LIKE_REASONS, likeMatch, removeLike, saveLike, useLikes, type LikeReason } from "@/lib/likes";
+import { ExternalLink, Heart } from "lucide-react";
 
 const TT_KEY = "wayfare.timetable";
 
@@ -108,7 +110,8 @@ function Index() {
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
   const [split, setSplit] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const visible = results ? sortResults(applyPreferences(results, profile), sortKey, social).slice(0, 8) : [];
+  const likesAll = useLikes();
+  const visible = results ? sortResults(applyLikes(applyPreferences(results, profile), likesAll), sortKey, social).slice(0, 8) : [];
   const selectFromMap = (id: string | null) => {
     setSelectedId(id);
     if (id && window.matchMedia("(min-width: 1024px)").matches) {
@@ -515,7 +518,13 @@ function ResultCard({
   const [open, setOpen] = useState(rank === 1);
   const { activity: a, journey } = result;
   const isTop = rank === 1 && result.reachable;
+  const likes = useLikes();
+  const liked = likes[a.id];
+  const similar = likeMatch(result, Object.values(likes));
+  const [asking, setAsking] = useState(false);
+  const [reasons, setReasons] = useState<LikeReason[]>([]);
   const goingRow = (
+    <div onClick={(e) => e.stopPropagation()}>
     <div className="flex flex-wrap items-center gap-3 border-t border-border px-5 py-2.5 text-xs">
       {signedIn ? (
         <button onClick={onGoing} className={cn("rounded-full px-3 py-1 font-semibold", isMine ? "bg-social text-social-foreground" : "border border-border hover:border-social-ink")}>
@@ -524,11 +533,56 @@ function ResultCard({
       ) : (
         <Link to="/auth" className="rounded-full border border-border px-3 py-1 hover:border-accent-ink">Sign in to say you're going</Link>
       )}
+      <button
+        onClick={() => { if (liked) removeLike(a.id); else { setReasons([]); setAsking((v) => !v); } }}
+        aria-pressed={!!liked}
+        className={cn("inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold", liked ? "bg-social text-social-foreground" : "border border-border hover:border-social-ink")}
+      >
+        <Heart className={cn("size-3.5", liked && "fill-current")} /> {liked ? "Saved" : "Save"}
+      </button>
       <span className="inline-flex items-center gap-1 text-muted-foreground"><Users className="size-3.5" /> {going} going</span>
       {friends.length > 0 && <span className="text-social-ink">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
-      <Link to="/activity/$id" params={{ id: a.id }} className="ml-auto inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">
-        Details <ArrowRight className="size-3.5" />
-      </Link>
+      <span className="ml-auto inline-flex items-center gap-3">
+        {a.url && (
+          <a href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">
+            View original <ExternalLink className="size-3.5" />
+          </a>
+        )}
+        <Link to="/activity/$id" params={{ id: a.id }} className="inline-flex items-center gap-1 font-semibold text-primary-ink hover:underline">
+          Details <ArrowRight className="size-3.5" />
+        </Link>
+      </span>
+    </div>
+    {asking && !liked && (
+      <div className="wf-fade-in border-t border-border bg-social/40 px-5 py-3 text-xs">
+        <p className="mb-2 font-semibold text-foreground">What do you like about it? We'll suggest more like this.</p>
+        <div className="flex flex-wrap gap-2">
+          {LIKE_REASONS.map((r) => {
+            const on = reasons.includes(r.key);
+            return (
+              <button key={r.key} aria-pressed={on}
+                onClick={() => setReasons((v) => (on ? v.filter((x) => x !== r.key) : [...v, r.key]))}
+                className={cn("rounded-full border px-3 py-1", on ? "border-social-ink bg-card font-semibold text-social-ink" : "border-border bg-card text-muted-foreground hover:text-foreground")}>
+                {on ? "✓ " : ""}{r.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button disabled={!reasons.length} onClick={() => { saveLike(a, result.startMin, reasons); setAsking(false); }}
+            className="rounded-full bg-primary px-4 py-1.5 font-semibold text-primary-foreground disabled:opacity-50">Save</button>
+          <button onClick={() => setAsking(false)} className="rounded-full border border-border px-4 py-1.5">Cancel</button>
+        </div>
+      </div>
+    )}
+    {liked && (
+      <p className="border-t border-border px-5 py-2 text-xs text-social-ink">
+        Saved — you liked: {liked.reasons.map((k) => LIKE_REASONS.find((r) => r.key === k)?.label.toLowerCase()).join(", ")}
+      </p>
+    )}
+    {!liked && similar && (
+      <p className="border-t border-border px-5 py-2 text-xs text-social-ink">♥ {similar}</p>
+    )}
     </div>
   );
 
