@@ -138,8 +138,8 @@ async function extract(
   const parsed = JSON.parse(args ?? '{"events":[]}') as { events: Partial<LiveEvent>[] };
   return (parsed.events ?? [])
     .filter((e) => e.title && e.startIso && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(e.startIso))
-    .map((e, i) => ({
-      id: `${source.name}-${i}-${e.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    .map((e) => ({
+      id: `${source.name}-${(e.startIso ?? "").slice(0, 10)}-${e.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       title: e.title!,
       description: e.description ?? "",
       startIso: e.startIso!.slice(0, 16),
@@ -175,6 +175,15 @@ async function refresh(): Promise<Snapshot> {
     seen.add(k);
     return true;
   });
+  // Archive every event we've seen so detail pages can show an organiser's past events.
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("event_history").upsert(
+      unique.map((e) => ({ id: e.id, title: e.title, source: e.source, venue: e.venue, town: e.town,
+        start_iso: e.startIso, price_gbp: e.priceGbp, url: e.url, tags: e.tags })),
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+  } catch (err) { console.error("event_history archive failed", err); }
   return { at: Date.now(), events: unique, sources };
 }
 

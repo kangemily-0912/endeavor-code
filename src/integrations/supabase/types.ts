@@ -35,6 +35,45 @@ export type Database = {
         }
         Relationships: []
       }
+      event_history: {
+        Row: {
+          first_seen: string
+          id: string
+          price_gbp: number | null
+          source: string
+          start_iso: string
+          tags: string[]
+          title: string
+          town: string | null
+          url: string | null
+          venue: string | null
+        }
+        Insert: {
+          first_seen?: string
+          id: string
+          price_gbp?: number | null
+          source: string
+          start_iso: string
+          tags?: string[]
+          title: string
+          town?: string | null
+          url?: string | null
+          venue?: string | null
+        }
+        Update: {
+          first_seen?: string
+          id?: string
+          price_gbp?: number | null
+          source?: string
+          start_iso?: string
+          tags?: string[]
+          title?: string
+          town?: string | null
+          url?: string | null
+          venue?: string | null
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee: string
