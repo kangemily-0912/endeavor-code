@@ -257,7 +257,7 @@ function Index() {
             runSearch(query);
           }}
         >
-          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-2xl shadow-black/40 focus-within:border-ring">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-card p-2 pl-3 shadow-lift focus-within:border-ring">
             <Sparkles className="ml-3 size-5 shrink-0 text-primary-ink" />
             <input
               value={query}
@@ -268,7 +268,7 @@ function Index() {
             <button
               type="submit"
               disabled={loading || nowMin === null}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:opacity-60"
+              className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground shadow-soft transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:opacity-60"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : "Go"}
               {!loading && <ArrowRight className="size-4" />}
