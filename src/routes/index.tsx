@@ -260,6 +260,33 @@ function Index() {
         </section>
       )}
 
+      {/* Live sources strip */}
+      <section className="relative z-10 mx-auto max-w-5xl px-6 pb-8">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-xs text-muted-foreground">
+              <span className="text-foreground font-semibold">{liveEvents.length}</span> live events from{" "}
+              {sources.filter((s) => s.ok).length}/{sources.length || "…"} watched pages
+            </p>
+            <p className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+              {syncing ? <Loader2 className="size-3 animate-spin" /> : <span className="size-1.5 rounded-full bg-accent" />}
+              {syncing ? "Reading society & venue pages…" : syncedAt ? `Synced ${new Date(syncedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · refreshes hourly` : ""}
+            </p>
+          </div>
+          {sources.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {sources.map((s) => (
+                <a key={s.url} href={s.url} target="_blank" rel="noreferrer"
+                  className={cn("rounded-full border px-2.5 py-1 font-mono text-[10px]",
+                    s.ok ? "border-border text-foreground hover:border-primary" : "border-border text-muted-foreground line-through opacity-60")}>
+                  {s.name} {s.ok && <span className="text-accent">· {s.count}</span>}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* How it works — shown before first search */}
       {!results && !loading && (
         <section className="relative z-10 mx-auto grid max-w-5xl gap-4 px-6 pb-24 sm:grid-cols-3">
@@ -377,12 +404,18 @@ function ResultCard({
                 <Zap className="size-3" /> Live Ember
               </span>
             )}
+            {a.live && (
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-primary uppercase">
+                Live listing
+              </span>
+            )}
             <span className="font-mono text-[10px] text-muted-foreground">{a.source}</span>
           </div>
           <h3 className="mt-1 font-display text-lg font-semibold leading-snug">{a.title}</h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Clock className="size-3.5" />
+              {a.dateLabel ? `${a.dateLabel} · ` : ""}
               {formatTime(result.startMin)} – {formatTime(result.endMin)}
             </span>
             <span className="inline-flex items-center gap-1">
@@ -395,8 +428,19 @@ function ResultCard({
             </span>
             <span className="inline-flex items-center gap-1">
               <Users className="size-3.5" />
-              {a.spacesLeft} spaces left
+              {a.live ? "Sign-up open" : `${a.spacesLeft} spaces left`}
             </span>
+            {a.url && (
+              <a
+                href={a.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                Sign up <ArrowRight className="size-3.5" />
+              </a>
+            )}
           </div>
         </div>
 
