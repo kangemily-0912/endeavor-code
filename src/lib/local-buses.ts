@@ -18,6 +18,9 @@ export const LOCAL_ROUTES: Route[] = [
   { operator: "Stagecoach 99C", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1320, everyMin: 30, offsetMin: 15, rideMin: 48 },
   { operator: "Stagecoach 99D", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1140, everyMin: 60, offsetMin: 35, rideMin: 42 },
   { operator: "Moffat & Williamson 92", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 480, lastMin: 1080, everyMin: 60, offsetMin: 50, rideMin: 45 },
+  { operator: "Stagecoach 9C", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 10, rideMin: 55 },
+  { operator: "Stagecoach 90", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 40, rideMin: 50 },
+  { operator: "Stagecoach 91", to: /st\.? andrews/i, stop: "Dundee Bus Station", firstMin: 420, lastMin: 1380, everyMin: 60, offsetMin: 25, rideMin: 52 },
 ];
 
 export function localBusOptions(
