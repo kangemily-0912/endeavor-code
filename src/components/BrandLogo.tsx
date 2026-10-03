@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/event-spark-logo.png.asset.json";
+import transparentLogo from "@/assets/event-spark-logo-transparent.png";
 import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
@@ -8,7 +8,7 @@ type BrandLogoProps = {
 export function BrandLogo({ className }: BrandLogoProps) {
   return (
     <img
-      src={logoAsset.url}
+      src={transparentLogo}
       alt="Event Spark"
       className={cn("h-12 w-auto object-contain", className)}
     />
