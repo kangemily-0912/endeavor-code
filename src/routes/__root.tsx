@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Wayfare — Real-time local discovery & transport" },
+      { title: "Event Spark — Real-time local discovery & transport" },
       {
         name: "description",
         content:
-          "Tell Wayfare what you feel like doing. We find local activities you can actually reach in time — with the journey built in.",
+          "Tell Event Spark what you feel like doing. We find local activities you can actually reach in time — with the journey built in.",
       },
-      { name: "author", content: "Wayfare" },
-      { property: "og:title", content: "Wayfare — Real-time local discovery & transport" },
+      { name: "author", content: "Event Spark" },
+      { property: "og:title", content: "Event Spark — Real-time local discovery & transport" },
       {
         property: "og:description",
         content:
@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,

@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "Your profile — Wayfare" },
-      { name: "description", content: "Your Wayfare preferences, timetable and friends." },
-      { property: "og:title", content: "Your profile — Wayfare" },
-      { property: "og:description", content: "Manage preferences, timetable and friends on Wayfare." },
+      { title: "Your profile — Event Spark" },
+      { name: "description", content: "Your Event Spark preferences, timetable and friends." },
+      { property: "og:title", content: "Your profile — Event Spark" },
+      { property: "og:description", content: "Manage preferences, timetable and friends on Event Spark." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

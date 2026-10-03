@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { MapPin, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Wayfare" },
-      { name: "description", content: "Sign in to Wayfare to save your timetable, preferences and see what friends are going to." },
-      { property: "og:title", content: "Sign in — Wayfare" },
+      { title: "Sign in — Event Spark" },
+      { name: "description", content: "Sign in to Event Spark to save your timetable, preferences and see what friends are going to." },
+      { property: "og:title", content: "Sign in — Event Spark" },
       { property: "og:description", content: "Save your timetable and preferences, and see where your friends are going." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -58,11 +59,8 @@ function AuthPage() {
     <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
       <div className="route-grid pointer-events-none absolute inset-0" />
       <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lift">
-        <Link to="/" className="mb-6 flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-            <MapPin className="size-5 text-primary-foreground" />
-          </div>
-          <span className="font-display text-xl font-bold">Wayfare</span>
+        <Link to="/" aria-label="Event Spark home" className="mb-6 inline-flex">
+          <BrandLogo className="h-16" />
         </Link>
         <h1 className="font-display text-2xl font-bold">{mode === "in" ? "Welcome back" : "Create your account"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Save your timetable, preferences and friends.</p>
