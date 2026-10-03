@@ -12,19 +12,34 @@ export const TOWNS: Record<string, [number, number]> = {
   aberdeen: [57.1497, -2.0943],
 };
 
-function hash(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
+// Verified coordinates for known venues (highest priority).
+const KNOWN: Record<string, [number, number]> = {
+  "dance base studio|edinburgh": [55.9476, -3.1953],
+  "the reading rooms|dundee": [56.4627, -2.9684],
+  "the pitt market|edinburgh": [55.976, -3.1745],
+  "king tut's wah wah hut|glasgow": [55.8625, -4.2647],
+  "dundee contemporary arts, studio 3|dundee": [56.4572, -2.9744],
+  "clarks on lindsay street|dundee": [56.4615, -2.9744],
+  "north inch park|perth": [56.404, -3.428],
+  "west sands beach|st andrews": [56.348, -2.809],
+};
+
+export const venueKey = (venue: string, town: string) => `${venue}|${town}`.toLowerCase();
+export const knownVenue = (venue: string, town: string) => KNOWN[venueKey(venue, town)] ?? null;
+
+export function townCentre(town: string): [number, number] {
+  const key = Object.keys(TOWNS).find((k) => town.toLowerCase().includes(k)) ?? "dundee";
+  return TOWNS[key]!;
 }
 
-export function coordsFor(town: string, venue: string): [number, number] {
-  const key = Object.keys(TOWNS).find((k) => town.toLowerCase().includes(k)) ?? "dundee";
-  const [lat, lng] = TOWNS[key]!;
-  const h = hash(venue + town);
-  const dLat = ((h & 0xff) / 255 - 0.5) * 0.012;
-  const dLng = (((h >> 8) & 0xff) / 255 - 0.5) * 0.02;
-  return [lat + dLat, lng + dLng];
+export type Loc = { ll: [number, number]; approx: boolean };
+
+export function locate(venue: string, town: string, geocoded: Record<string, { lat: number; lng: number } | null>): Loc {
+  const k = knownVenue(venue, town);
+  if (k) return { ll: k, approx: false };
+  const g = geocoded[venueKey(venue, town)];
+  if (g) return { ll: [g.lat, g.lng], approx: false };
+  return { ll: townCentre(town), approx: true };
 }
 
 export type ReachState = "easy" | "soon" | "later" | "unfit";
