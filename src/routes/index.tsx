@@ -467,6 +467,9 @@ function ResultCard({
       )}
       <span className="inline-flex items-center gap-1 text-muted-foreground"><Users className="size-3.5" /> {going} going</span>
       {friends.length > 0 && <span className="text-accent">Friends: {friends.slice(0, 3).join(", ")}{friends.length > 3 ? ` +${friends.length - 3}` : ""}</span>}
+      <Link to="/activity/$id" params={{ id: a.id }} className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+        Details <ArrowRight className="size-3.5" />
+      </Link>
     </div>
   );
 
