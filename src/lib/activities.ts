@@ -17,6 +17,7 @@ export type Journey = {
   realtime?: boolean | undefined; // departure time comes from live GTFS-RT tracking
   delayMin?: number | undefined; // live minus scheduled
   alternatives?: Journey[] | undefined; // other ways to get there, all operators
+  bookingUrl?: string | undefined; // ember.to booking page with this exact departure preselected
 };
 
 export type Activity = {

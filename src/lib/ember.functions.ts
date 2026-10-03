@@ -12,8 +12,8 @@ type EmberQuote = {
   legs?: Array<{
     departure?: { scheduled?: string; estimated?: string };
     arrival?: { scheduled?: string; estimated?: string };
-    origin?: { name?: string; atco_code?: string };
-    destination?: { name?: string };
+    origin?: { name?: string; atco_code?: string; location_time_id?: number };
+    destination?: { name?: string; location_time_id?: number };
     description?: { brand?: string; route_number?: string };
   }>;
 };
@@ -67,6 +67,22 @@ function matchLive(rt: Map<string, number[]>, atco: string | undefined, schedSec
     if (Math.abs(t - schedSec) <= 1200 && (best == null || Math.abs(t - schedSec) < Math.abs(best - schedSec))) best = t;
   }
   return best;
+}
+
+// ember.to/book reads these params and preselects the departure whose stop
+// location_time_ids match outboundBasketOrigin/Destination.
+function bookingUrl(originId: number, destId: number, depIso: string, leg: NonNullable<EmberQuote["legs"]>[number]): string {
+  const params = new URLSearchParams({
+    origin: String(originId),
+    destination: String(destId),
+    departure_date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date(depIso)),
+    adult: "1",
+  });
+  if (leg.origin?.location_time_id && leg.destination?.location_time_id) {
+    params.set("outboundBasketOrigin", String(leg.origin.location_time_id));
+    params.set("outboundBasketDestination", String(leg.destination.location_time_id));
+  }
+  return `https://www.ember.to/book/?${params}`;
 }
 
 async function findLocationId(query: string): Promise<EmberLocation | null> {
@@ -148,6 +164,7 @@ export const getEmberJourneys = createServerFn({ method: "POST" })
               live: true,
               pricePence: quote.prices?.adult,
               seatsLeft: quote.availability?.seat,
+              bookingUrl: bookingUrl(EMBER_ORIGIN_ID, loc.id, depIso, leg),
               legs: [
                 { mode: "walk", label: `Walk to ${leg.origin?.name ?? "Dundee"} stop`, durationMin: req.firstMileMin },
                 { mode: "bus", label: `Ember → ${leg.destination?.name ?? loc.name}`, durationMin: arrMin - depMin },

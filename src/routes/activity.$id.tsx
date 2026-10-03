@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, ExternalLink, History, Loader2, MapPin, Sparkles, Users, Wallet } from "lucide-react";
-import { ACTIVITIES, type Activity } from "@/lib/activities";
+import { ArrowLeft, ArrowRight, Bus, Clock, ExternalLink, History, Loader2, MapPin, Sparkles, Users, Wallet } from "lucide-react";
+import { ACTIVITIES, type Activity, type Journey } from "@/lib/activities";
+import { getEmberJourneys } from "@/lib/ember.functions";
 import { getLiveEvents } from "@/lib/live-events.functions";
 import { toActivity } from "@/lib/live-activity";
-import { formatTime } from "@/lib/recommend";
+import { buildJourney, formatTime } from "@/lib/recommend";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ function DetailPage() {
   const [friends, setFriends] = useState<string[]>([]);
   const [mine, setMine] = useState(false);
   const [nowMin, setNowMin] = useState<number | null>(null);
+  const [emberBus, setEmberBus] = useState<Journey | null>(null);
 
   useEffect(() => {
     setNowMin(londonNowMin());
@@ -55,6 +57,19 @@ function DetailPage() {
     supabase.from("event_history").select("id,title,start_iso,venue").eq("source", a.source).lt("start_iso", today)
       .order("start_iso", { ascending: false }).limit(6).then(({ data }) => setPast(data ?? []));
   }, [a?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Same journey choice as the search results; link it only if it's an Ember bus.
+  useEffect(() => {
+    setEmberBus(null);
+    if (!a?.ember || nowMin === null) return;
+    const { destQuery, firstMileMin, lastMileMin } = a.ember;
+    getEmberJourneys({ data: { requests: [{ destQuery, firstMileMin, lastMileMin, startMin: nowMin + a.startOffsetMin }], nowMin } })
+      .then((r) => {
+        const j = buildJourney(a, nowMin, r.journeys);
+        setEmberBus([j, ...(j?.alternatives ?? [])].find((o) => o?.operator === "Ember" && o.bookingUrl) ?? null);
+      })
+      .catch(() => {});
+  }, [a?.id, nowMin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSocial = async () => {
     const c = await supabase.rpc("going_counts", { _ids: [id] });
@@ -119,7 +134,19 @@ function DetailPage() {
           {a.url && <a href={a.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-95 active:scale-95">Learn more <ExternalLink className="size-4" /></a>}
         </div>
 
-        <section className="mt-8 rounded-2xl border border-border bg-card p-5">
+        <section className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <h2 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase"><Bus className="size-3.5" /> Getting there with Ember</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {emberBus?.bookingUrl && emberBus.departMin != null && (
+              <a href={emberBus.bookingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-95 active:scale-95">
+                Book the {formatTime(emberBus.departMin)} Ember bus{emberBus.pricePence != null ? ` · £${(emberBus.pricePence / 100).toFixed(2)}` : ""} <ExternalLink className="size-4" />
+              </a>
+            )}
+            <a href="https://www.ember.to/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary-ink hover:underline">ember.to <ExternalLink className="size-3.5" /></a>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-border bg-card p-5">
           <h2 className="font-mono text-[10px] font-bold tracking-widest text-accent-ink uppercase">Organiser</h2>
           <p className="mt-2 font-display text-lg font-semibold">{a.source}</p>
           {fromOrganiser.length > 0 ? (
