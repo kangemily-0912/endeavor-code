@@ -37,9 +37,9 @@ export default function ResultsMap({ results, nowMin, origin, maxTravelMin, hasT
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current, { zoomControl: true, attributionControl: true }).setView(originLL, 10);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 18,
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18, className: "wf-tiles",
     }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;

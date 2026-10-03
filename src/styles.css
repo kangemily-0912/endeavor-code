@@ -216,3 +216,4 @@ button:not(:disabled):active, a:active {
 .wf-reach-area { fill: var(--reach); fill-opacity: .25; stroke: var(--reach-foreground); stroke-opacity: .35; stroke-width: 1.5; stroke-dasharray: 6 6; }
 .wf-card-selected { box-shadow: 0 0 0 3px var(--accent-ink) !important; }
 @media (prefers-reduced-motion: reduce) { .wf-pin { transition: none; } }
+.wf-tiles { filter: saturate(0.45) brightness(1.04) sepia(0.08); }
