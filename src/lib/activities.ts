@@ -4,6 +4,15 @@ export type JourneyLeg = {
   durationMin: number;
 };
 
+export type Journey = {
+  leaveByMin: number; // must leave by (minutes after midnight, local)
+  totalMin: number;
+  legs: JourneyLeg[];
+  live?: boolean; // true when built from the live Ember API
+  pricePence?: number; // live fare, when known
+  seatsLeft?: number; // live seat availability, when known
+};
+
 export type Activity = {
   id: string;
   title: string;
@@ -11,106 +20,68 @@ export type Activity = {
   town: string;
   source: string; // where the listing was aggregated from
   tags: string[]; // interest tags
-  startMin: number; // minutes after midnight
-  endMin: number;
+  startOffsetMin: number; // starts this many minutes after "now"
+  durationMin: number;
   priceGbp: number;
   spacesLeft: number;
   description: string;
-  journey: {
-    leaveByMin: number; // must leave by (minutes after midnight)
-    totalMin: number;
-    legs: JourneyLeg[];
-  };
+  // Local activities: simple walk. Remote: resolved live via the Ember API.
+  walkMin?: number;
+  ember?: { destQuery: string; lastMileMin: number; firstMileMin: number };
+  // Fallback journey used if the live API is unreachable
+  fallbackJourney?: { leaveOffsetMin: number; totalMin: number; legs: JourneyLeg[] };
 };
 
-// Demo scenario: Saturday, user is in St Andrews, "now" is 14:00.
-export const DEMO_NOW_MIN = 14 * 60;
-export const DEMO_LOCATION = "St Andrews";
+// Demo scenario: user is in Dundee (Ember's home network). "Now" is the real
+// current time, so live Ember quotes always line up with the demo clock.
+export const DEMO_LOCATION = "Dundee";
+export const EMBER_ORIGIN_ID = 13; // Dundee (City Centre)
 
 export const ACTIVITIES: Activity[] = [
   {
-    id: "salsa-dundee",
+    id: "salsa-edinburgh",
     title: "Beginner Salsa Session",
     venue: "Dance Base Studio",
-    town: "Dundee",
-    source: "Instagram · @dancebase_dundee",
+    town: "Edinburgh",
+    source: "Instagram · @dancebase_edi",
     tags: ["dance", "active", "social", "creative"],
-    startMin: 15 * 60 + 30,
-    endMin: 17 * 60,
+    startOffsetMin: 100,
+    durationMin: 90,
     priceGbp: 8,
     spacesLeft: 6,
     description:
       "A friendly drop-in salsa class for complete beginners. No partner needed — posted this morning on the studio's Instagram.",
-    journey: {
-      leaveByMin: 14 * 60 + 35,
-      totalMin: 48,
-      legs: [
-        { mode: "walk", label: "Walk to St Andrews Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Ember E1 → Dundee City Centre", durationMin: 33 },
-        { mode: "walk", label: "Walk to Dance Base Studio", durationMin: 7 },
-      ],
-    },
+    ember: { destQuery: "Edinburgh City Centre", lastMileMin: 9, firstMileMin: 8 },
   },
   {
-    id: "bachata-st-andrews",
+    id: "bachata-dundee",
     title: "Bachata Social Night",
-    venue: "Students' Union, Club 601",
-    town: "St Andrews",
-    source: "University Society · Salsa Society",
+    venue: "The Reading Rooms",
+    town: "Dundee",
+    source: "Community page · Dundee Latin Dance",
     tags: ["dance", "social", "night", "music"],
-    startMin: 20 * 60,
-    endMin: 23 * 60,
+    startOffsetMin: 330,
+    durationMin: 180,
     priceGbp: 5,
     spacesLeft: 40,
     description:
-      "Weekly social run by the university Salsa Society. Beginner taster at 8pm, then open floor.",
-    journey: {
-      leaveByMin: 19 * 60 + 40,
-      totalMin: 12,
-      legs: [{ mode: "walk", label: "Walk to the Students' Union", durationMin: 12 }],
-    },
+      "Weekly social run by the local Latin dance community. Beginner taster first, then open floor.",
+    walkMin: 12,
   },
   {
-    id: "zumba-cupar",
-    title: "Zumba in the Park",
-    venue: "Haugh Park",
-    town: "Cupar",
-    source: "Community page · Cupar Events",
-    tags: ["dance", "active", "outdoors", "fitness"],
-    startMin: 16 * 60,
-    endMin: 17 * 60,
+    id: "street-food-edinburgh",
+    title: "Street Food Market",
+    venue: "The Pitt Market",
+    town: "Edinburgh",
+    source: "Eventbrite",
+    tags: ["food", "social", "outdoors", "night"],
+    startOffsetMin: 240,
+    durationMin: 240,
     priceGbp: 0,
-    spacesLeft: 25,
+    spacesLeft: 200,
     description:
-      "Free outdoor Zumba session organised by the local community council. Bring water and trainers.",
-    journey: {
-      leaveByMin: 15 * 60 + 10,
-      totalMin: 42,
-      legs: [
-        { mode: "walk", label: "Walk to Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Stagecoach 99 → Cupar", durationMin: 29 },
-        { mode: "walk", label: "Walk to Haugh Park", durationMin: 5 },
-      ],
-    },
-  },
-  {
-    id: "coastal-run",
-    title: "Fife Coastal Path Group Run",
-    venue: "East Sands Beach",
-    town: "St Andrews",
-    source: "Instagram · @standrewsrunclub",
-    tags: ["active", "outdoors", "fitness", "social"],
-    startMin: 15 * 60,
-    endMin: 16 * 60 + 30,
-    priceGbp: 0,
-    spacesLeft: 15,
-    description:
-      "Weekly social run along the coastal path. All paces welcome, ~8km out and back. Meet point posted on Instagram.",
-    journey: {
-      leaveByMin: 14 * 60 + 45,
-      totalMin: 15,
-      legs: [{ mode: "walk", label: "Walk to East Sands", durationMin: 15 }],
-    },
+      "Weekend street food market with local vendors, live music and communal tables. Free entry.",
+    ember: { destQuery: "Edinburgh City Centre", lastMileMin: 14, firstMileMin: 8 },
   },
   {
     id: "pottery-dundee",
@@ -119,124 +90,88 @@ export const ACTIVITIES: Activity[] = [
     town: "Dundee",
     source: "Eventbrite",
     tags: ["creative", "craft", "hands-on", "indoors"],
-    startMin: 15 * 60,
-    endMin: 17 * 60,
+    startOffsetMin: 60,
+    durationMin: 120,
     priceGbp: 22,
     spacesLeft: 3,
     description:
       "Two-hour wheel-throwing taster. You keep one glazed mug, posted back to you after firing.",
-    journey: {
-      leaveByMin: 14 * 60 + 5,
-      totalMin: 50,
-      legs: [
-        { mode: "walk", label: "Walk to St Andrews Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Ember E1 → Dundee", durationMin: 33 },
-        { mode: "walk", label: "Walk to Clayworks Studio", durationMin: 9 },
-      ],
-    },
+    walkMin: 15,
+  },
+  {
+    id: "indie-gig-glasgow",
+    title: "Live Indie Gig: The Cairds",
+    venue: "King Tut's Wah Wah Hut",
+    town: "Glasgow",
+    source: "Instagram · @kingtuts",
+    tags: ["music", "night", "social", "live"],
+    startOffsetMin: 360,
+    durationMin: 180,
+    priceGbp: 14,
+    spacesLeft: 30,
+    description:
+      "Up-and-coming Scottish indie band, support from two local acts. Over-18s, standing.",
+    ember: { destQuery: "Glasgow", lastMileMin: 10, firstMileMin: 8 },
   },
   {
     id: "life-drawing",
     title: "Drop-in Life Drawing",
-    venue: "Townshend Building, Studio 3",
-    town: "St Andrews",
+    venue: "Dundee Contemporary Arts, Studio 3",
+    town: "Dundee",
     source: "University Society · Art Society",
     tags: ["creative", "art", "indoors", "calm"],
-    startMin: 16 * 60 + 30,
-    endMin: 18 * 60 + 30,
+    startOffsetMin: 150,
+    durationMin: 120,
     priceGbp: 4,
     spacesLeft: 12,
     description:
       "Untutored life drawing session. Materials provided, all levels. Run by the Art Society.",
-    journey: {
-      leaveByMin: 16 * 60 + 15,
-      totalMin: 10,
-      legs: [{ mode: "walk", label: "Walk to Townshend Building", durationMin: 10 }],
-    },
+    walkMin: 10,
   },
   {
     id: "open-mic",
     title: "Open Mic Night",
-    venue: "The Rule Bar",
-    town: "St Andrews",
-    source: "Instagram Story · @therulestandrews",
+    venue: "Clarks on Lindsay Street",
+    town: "Dundee",
+    source: "Instagram Story · @clarksdundee",
     tags: ["music", "night", "social", "creative"],
-    startMin: 21 * 60,
-    endMin: 23 * 60 + 30,
+    startOffsetMin: 420,
+    durationMin: 150,
     priceGbp: 0,
     spacesLeft: 60,
     description:
-      "Announced via an Instagram Story this afternoon. Sign up from 8:30pm, music from 9pm.",
-    journey: {
-      leaveByMin: 20 * 60 + 45,
-      totalMin: 9,
-      legs: [{ mode: "walk", label: "Walk to The Rule", durationMin: 9 }],
-    },
+      "Announced via an Instagram Story this afternoon. Sign up early, music from doors.",
+    walkMin: 9,
   },
   {
-    id: "ceilidh-anstruther",
-    title: "Community Ceilidh",
-    venue: "Dreel Halls",
-    town: "Anstruther",
-    source: "Community page · East Neuk Events",
-    tags: ["dance", "music", "social", "night", "scottish"],
-    startMin: 19 * 60 + 30,
-    endMin: 22 * 60 + 30,
-    priceGbp: 10,
-    spacesLeft: 45,
+    id: "riverside-perth",
+    title: "Riverside Parkrun & Coffee",
+    venue: "North Inch Park",
+    town: "Perth",
+    source: "Community page · Perth Runners",
+    tags: ["active", "outdoors", "fitness", "social"],
+    startOffsetMin: 120,
+    durationMin: 90,
+    priceGbp: 0,
+    spacesLeft: 80,
     description:
-      "Traditional Scottish ceilidh with a live band. Callers talk you through every dance.",
-    journey: {
-      leaveByMin: 18 * 60 + 35,
-      totalMin: 44,
-      legs: [
-        { mode: "walk", label: "Walk to Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Stagecoach 95 → Anstruther", durationMin: 31 },
-        { mode: "walk", label: "Walk to Dreel Halls", durationMin: 5 },
-      ],
-    },
-  },
-  {
-    id: "kayak",
-    title: "Sea Kayak Taster",
-    venue: "Isle of May Boatshed",
-    town: "Anstruther",
-    source: "Independent business · East Neuk Outdoors",
-    tags: ["outdoors", "active", "adventure", "water"],
-    startMin: 14 * 60 + 30,
-    endMin: 16 * 60 + 30,
-    priceGbp: 35,
-    spacesLeft: 2,
-    description:
-      "Guided two-hour paddle along the East Neuk coastline. All kit provided, no experience needed.",
-    journey: {
-      leaveByMin: 13 * 60 + 40,
-      totalMin: 44,
-      legs: [
-        { mode: "walk", label: "Walk to Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Stagecoach 95 → Anstruther", durationMin: 31 },
-        { mode: "walk", label: "Walk to the Boatshed", durationMin: 5 },
-      ],
-    },
+      "Social 5k along the Tay, all paces welcome, followed by coffee at the park café.",
+    ember: { destQuery: "Perth", lastMileMin: 12, firstMileMin: 8 },
   },
   {
     id: "board-games",
     title: "Board Games Café Afternoon",
-    venue: "Moka Coffee House",
-    town: "St Andrews",
+    venue: "Blend Coffee Lounge",
+    town: "Dundee",
     source: "Café noticeboard · submitted directly",
     tags: ["social", "indoors", "calm", "games", "food"],
-    startMin: 14 * 60 + 30,
-    endMin: 17 * 60 + 30,
+    startOffsetMin: 30,
+    durationMin: 180,
     priceGbp: 3,
     spacesLeft: 18,
     description:
       "Open tables with a library of 200+ games. Staff help you pick and teach the rules.",
-    journey: {
-      leaveByMin: 14 * 60 + 20,
-      totalMin: 6,
-      legs: [{ mode: "walk", label: "Walk to Moka Coffee House", durationMin: 6 }],
-    },
+    walkMin: 6,
   },
   {
     id: "climbing-dundee",
@@ -245,42 +180,49 @@ export const ACTIVITIES: Activity[] = [
     town: "Dundee",
     source: "Eventbrite",
     tags: ["active", "fitness", "indoors", "adventure"],
-    startMin: 17 * 60,
-    endMin: 18 * 60 + 30,
+    startOffsetMin: 180,
+    durationMin: 90,
     priceGbp: 14,
     spacesLeft: 8,
     description:
       "Supervised intro to bouldering with shoe hire included. Great first-timer session.",
-    journey: {
-      leaveByMin: 16 * 60 + 5,
-      totalMin: 47,
-      legs: [
-        { mode: "walk", label: "Walk to St Andrews Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Ember E1 → Dundee", durationMin: 33 },
-        { mode: "walk", label: "Walk to Avertical World", durationMin: 6 },
-      ],
-    },
+    walkMin: 18,
   },
   {
-    id: "foraging",
+    id: "whisky-edinburgh",
+    title: "Whisky Tasting: Highland vs Island",
+    venue: "The Scotch Malt Bar",
+    town: "Edinburgh",
+    source: "Eventbrite",
+    tags: ["food", "night", "social", "indoors"],
+    startOffsetMin: 400,
+    durationMin: 120,
+    priceGbp: 28,
+    spacesLeft: 10,
+    description:
+      "Guided tasting of five single malts with a resident whisky expert. Over-18s only.",
+    ember: { destQuery: "Edinburgh City Centre", lastMileMin: 7, firstMileMin: 8 },
+  },
+  {
+    id: "foraging-st-andrews",
     title: "Coastal Foraging Walk",
-    venue: "Kingsbarns Beach",
-    town: "Kingsbarns",
+    venue: "West Sands Beach",
+    town: "St Andrews",
     source: "Independent business · Fife Wild Food",
     tags: ["outdoors", "food", "nature", "calm"],
-    startMin: 15 * 60 + 30,
-    endMin: 17 * 60 + 30,
+    startOffsetMin: 90,
+    durationMin: 120,
     priceGbp: 18,
     spacesLeft: 10,
     description:
       "Learn to identify edible seaweeds and coastal plants with a local forager. Ends with a tasting.",
-    journey: {
-      leaveByMin: 14 * 60 + 55,
-      totalMin: 30,
+    fallbackJourney: {
+      leaveOffsetMin: 45,
+      totalMin: 40,
       legs: [
-        { mode: "walk", label: "Walk to Bus Station", durationMin: 8 },
-        { mode: "bus", label: "Stagecoach 95 → Kingsbarns", durationMin: 17 },
-        { mode: "walk", label: "Walk to the beach", durationMin: 5 },
+        { mode: "walk", label: "Walk to Dundee Bus Station", durationMin: 8 },
+        { mode: "bus", label: "Stagecoach 99 → St Andrews", durationMin: 27 },
+        { mode: "walk", label: "Walk to West Sands", durationMin: 5 },
       ],
     },
   },
